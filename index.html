@@ -123,7 +123,13 @@ dl.defs{margin:0}dl.defs dt{font-weight:600;margin-top:6px}dl.defs dd{margin:0 0
 .hzlab.heat_drought_fire{color:var(--heat)}.hzlab.flood{color:var(--flood)}.hzlab.windstorm{color:var(--wind)}
 .notice{font-size:12px;color:var(--warn)}
 .zoomhint{font-size:11px;color:#666;margin-top:3px}
-.mapwrap{position:relative}
+.mapwrap{position:relative;outline:none}.mapwrap:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mapwrap canvas.overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;background:transparent;border:1px solid transparent}
+.mapwrap canvas{cursor:grab}.mapwrap:active canvas{cursor:grabbing}
+.panpad{position:absolute;top:8px;left:44px;display:grid;grid-template-columns:repeat(3,22px);grid-template-rows:repeat(3,22px);gap:1px;z-index:2}
+.panpad button{border:1px solid #999;background:rgba(255,255,255,.92);color:#22272e;border-radius:4px;font-size:10px;line-height:1;cursor:pointer;padding:0}
+.panpad button:hover{border-color:#22272e}
+.panpad [data-p=n]{grid-column:2;grid-row:1}.panpad [data-p=w]{grid-column:1;grid-row:2}.panpad [data-p=e]{grid-column:3;grid-row:2}.panpad [data-p=s]{grid-column:2;grid-row:3}
 .zoomctl{position:absolute;top:8px;left:8px;display:flex;flex-direction:column;gap:3px;z-index:2}
 .zoomctl button{width:28px;height:28px;border:1px solid #999;background:rgba(255,255,255,.92);color:#22272e;border-radius:5px;font-size:17px;line-height:1;cursor:pointer;padding:0}
 .zoomctl button:hover{border-color:#22272e}
@@ -256,42 +262,61 @@ function landMean(a){let s=0,k=0;for(const v of a)if(!Number.isNaN(v)){s+=v;k++}
 /* ============ map ============ */
 const ASPECT=Math.cos(52.5*Math.PI/180)*55/35; // width/height in projected units
 class GridMap{
- constructor(canvas,{full=false,onHover=null,onClick=null}={}){this.c=canvas;this.full=full;this.onHover=onHover;this.onClick=onClick;this.W=1100;this.H=Math.round(this.W/ASPECT);canvas.width=this.W;canvas.height=this.H;this.ctx=canvas.getContext("2d");this.k=1;this.tx=0;this.ty=0;this.drag=null;this.justDragged=false;this.last=null;
-  const wrap=document.createElement("div");wrap.className="mapwrap";canvas.parentNode.insertBefore(wrap,canvas);wrap.appendChild(canvas);
-  wrap.insertAdjacentHTML("beforeend",'<div class="zoomctl"><button type="button" data-z="in" title="zoom in">+</button><button type="button" data-z="out" title="zoom out">−</button><button type="button" data-z="reset" title="reset view">⟲</button></div>');
-  wrap.insertAdjacentHTML("afterend",'<div class="zoomhint">scroll or pinch to zoom · drag to pan · + − ⟲ buttons · cells are 0.5°, zoom adds no detail</div>');
-  wrap.querySelectorAll(".zoomctl button").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();const z=b.dataset.z;if(z==="reset"){this.k=1;this.tx=0;this.ty=0}else this._zoomAt(this.W/2,this.H/2,z==="in"?1.6:1/1.6);this.redraw()}));
-  canvas.style.touchAction="none";this.ptrs=new Map();this.pinch=null;
-  canvas.addEventListener("wheel",e=>{e.preventDefault();const [sx,sy]=this._screen(e);this._zoomAt(sx,sy,Math.exp(-e.deltaY*0.0015));this.redraw()},{passive:false});
-  canvas.addEventListener("pointerdown",e=>{canvas.setPointerCapture(e.pointerId);this.ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(this.ptrs.size===1)this.drag={x:e.clientX,y:e.clientY,tx:this.tx,ty:this.ty,moved:false};else if(this.ptrs.size===2){const [a,b]=[...this.ptrs.values()];this.pinch={d:Math.hypot(a.x-b.x,a.y-b.y),k:this.k};this.drag=null}});
-  canvas.addEventListener("pointermove",e=>{if(this.ptrs.has(e.pointerId))this.ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
-   if(this.pinch&&this.ptrs.size===2){const [a,b]=[...this.ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);const r=canvas.getBoundingClientRect();const mx=((a.x+b.x)/2-r.left)/r.width*this.W,my=((a.y+b.y)/2-r.top)/r.height*this.H;const target=Math.min(14,Math.max(1,this.pinch.k*d/this.pinch.d));this._zoomAt(mx,my,target/this.k);this.redraw();return}
-   if(this.drag){const r=canvas.getBoundingClientRect();const dx=(e.clientX-this.drag.x)/r.width*this.W,dy=(e.clientY-this.drag.y)/r.height*this.H;if(Math.abs(dx)+Math.abs(dy)>4)this.drag.moved=true;if(this.drag.moved){this.tx=this.drag.tx+dx;this.ty=this.drag.ty+dy;this._clamp();this.redraw();return}}
+ constructor(canvas,{full=false,onHover=null,onClick=null}={}){
+  this.c=canvas;this.full=full;this.onHover=onHover;this.onClick=onClick;this.W=1400;this.H=Math.round(this.W/ASPECT);canvas.width=this.W;canvas.height=this.H;this.ctx=canvas.getContext("2d");
+  this.k=1;this.tx=0;this.ty=0;this.anim=null;this.last=null;this.cache=null;this.crispTimer=null;this.drag=null;this.justDragged=false;this.ptrs=new Map();this.pinch=null;
+  const wrap=document.createElement("div");wrap.className="mapwrap";canvas.parentNode.insertBefore(wrap,canvas);wrap.appendChild(canvas);this.wrap=wrap;wrap.__map=this;
+  const ov=document.createElement("canvas");ov.className="overlay";ov.width=this.W;ov.height=this.H;wrap.appendChild(ov);this.o=ov;this.octx=ov.getContext("2d");
+  wrap.insertAdjacentHTML("beforeend",'<div class="zoomctl"><button type="button" data-z="in" title="zoom in (+)">+</button><button type="button" data-z="out" title="zoom out (−)">−</button><button type="button" data-z="reset" title="reset view (0)">⟲</button></div><div class="panpad"><button type="button" data-p="n" title="pan north (↑)">▲</button><button type="button" data-p="w" title="pan west (←)">◀</button><button type="button" data-p="e" title="pan east (→)">▶</button><button type="button" data-p="s" title="pan south (↓)">▼</button></div>');
+  wrap.insertAdjacentHTML("afterend",'<div class="zoomhint">zoom: + − buttons, scroll or pinch · pan: drag, arrow pad or keyboard arrows · double-click zooms in · ⟲ or 0 resets · cells are 0.5°, zoom adds no detail</div>');
+  wrap.querySelectorAll(".zoomctl button").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();const z=b.dataset.z;if(z==="reset")this.animateTo(1,0,0);else this.zoomBy(z==="in"?2:0.5)}));
+  wrap.querySelectorAll(".panpad button").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();this.panBy(b.dataset.p)}));
+  wrap.tabIndex=0;wrap.addEventListener("keydown",e=>{const m={ArrowUp:"n",ArrowDown:"s",ArrowLeft:"w",ArrowRight:"e"};if(m[e.key]){e.preventDefault();this.panBy(m[e.key])}else if(e.key==="+"||e.key==="="){e.preventDefault();this.zoomBy(2)}else if(e.key==="-"||e.key==="_"){e.preventDefault();this.zoomBy(0.5)}else if(e.key==="0"){e.preventDefault();this.animateTo(1,0,0)}});
+  canvas.style.touchAction="none";ov.style.touchAction="none";
+  wrap.addEventListener("wheel",e=>{e.preventDefault();const [sx,sy]=this._screen(e);const base=this.anim?this.anim.to:this;const f=Math.exp(-e.deltaY*0.0022);const t=this._targetZoomAt(sx,sy,f,base);this.animateTo(t.k,t.tx,t.ty,140)},{passive:false});
+  wrap.addEventListener("pointerdown",e=>{if(e.target.tagName==="BUTTON")return;wrap.setPointerCapture(e.pointerId);this.ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});this._stopAnim();wrap.focus({preventScroll:true});
+   if(this.ptrs.size===1)this.drag={x:e.clientX,y:e.clientY,tx:this.tx,ty:this.ty,moved:false};else if(this.ptrs.size===2){const [a,b]=[...this.ptrs.values()];this.pinch={d:Math.hypot(a.x-b.x,a.y-b.y),k:this.k};this.drag=null}});
+  wrap.addEventListener("pointermove",e=>{if(this.ptrs.has(e.pointerId))this.ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+   if(this.pinch&&this.ptrs.size===2){const [a,b]=[...this.ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);const r=this.c.getBoundingClientRect();const mx=((a.x+b.x)/2-r.left)/r.width*this.W,my=((a.y+b.y)/2-r.top)/r.height*this.H;const target=Math.min(16,Math.max(1,this.pinch.k*d/this.pinch.d));const t=this._targetZoomAt(mx,my,target/this.k);this._set(t.k,t.tx,t.ty);return}
+   if(this.drag){const r=this.c.getBoundingClientRect();const dx=(e.clientX-this.drag.x)/r.width*this.W,dy=(e.clientY-this.drag.y)/r.height*this.H;if(Math.abs(dx)+Math.abs(dy)>4)this.drag.moved=true;if(this.drag.moved){this._set(this.k,this.drag.tx+dx,this.drag.ty+dy);return}}
    if(e.pointerType==="mouse")this._pt(e,false)});
-  const up=e=>{this.ptrs.delete(e.pointerId);if(this.ptrs.size<2)this.pinch=null;if(this.drag){this.justDragged=this.drag.moved;this.drag=null}};canvas.addEventListener("pointerup",up);canvas.addEventListener("pointercancel",up);
-  canvas.addEventListener("dblclick",()=>{this.k=1;this.tx=0;this.ty=0;this.redraw()});
-  canvas.addEventListener("click",e=>{if(this.justDragged){this.justDragged=false;return}this._pt(e,true)});canvas.addEventListener("pointerleave",()=>this.onHover&&this.onHover(null))}
- _zoomAt(sx,sy,f){const k2=Math.min(14,Math.max(1,this.k*f));const wx=(sx-this.tx)/this.k,wy=(sy-this.ty)/this.k;this.k=k2;this.tx=sx-wx*k2;this.ty=sy-wy*k2;this._clamp()}
+  const up=e=>{this.ptrs.delete(e.pointerId);if(this.ptrs.size<2)this.pinch=null;if(this.drag){this.justDragged=this.drag.moved;this.drag=null}this._crispSoon()};
+  wrap.addEventListener("pointerup",up);wrap.addEventListener("pointercancel",up);
+  wrap.addEventListener("dblclick",e=>{if(e.target.tagName==="BUTTON")return;const [sx,sy]=this._screen(e);const t=this._targetZoomAt(sx,sy,2);this.animateTo(t.k,t.tx,t.ty)});
+  wrap.addEventListener("click",e=>{if(e.target.tagName==="BUTTON")return;if(this.justDragged){this.justDragged=false;return}this._pt(e,true)});
+  wrap.addEventListener("pointerleave",()=>{this.clearOverlay();this.onHover&&this.onHover(null)})}
  _screen(e){const r=this.c.getBoundingClientRect();return [(e.clientX-r.left)/r.width*this.W,(e.clientY-r.top)/r.height*this.H]}
- _clamp(){this.tx=Math.min(0,Math.max(this.W-this.W*this.k,this.tx));this.ty=Math.min(0,Math.max(this.H-this.H*this.k,this.ty))}
- redraw(){if(this.last)this.draw(this.last.values,this.last.scale,this.last.opts)}
+ _clampT(k,tx,ty){k=Math.min(16,Math.max(1,k));tx=Math.min(0,Math.max(this.W-this.W*k,tx));ty=Math.min(0,Math.max(this.H-this.H*k,ty));return {k,tx,ty}}
+ _targetZoomAt(sx,sy,f,from){const b=from||this;const k2=Math.min(16,Math.max(1,b.k*f));const wx=(sx-b.tx)/b.k,wy=(sy-b.ty)/b.k;return this._clampT(k2,sx-wx*k2,sy-wy*k2)}
+ zoomBy(f){const t=this._targetZoomAt(this.W/2,this.H/2,f,this.anim?this.anim.to:this);this.animateTo(t.k,t.tx,t.ty)}
+ panBy(dir){const step=Math.min(this.W,this.H)*0.22;const b=this.anim?this.anim.to:this;const d={n:[0,step],s:[0,-step],w:[step,0],e:[-step,0]}[dir];const t=this._clampT(b.k,b.tx+d[0],b.ty+d[1]);this.animateTo(t.k,t.tx,t.ty)}
+ _stopAnim(){if(this.anim){cancelAnimationFrame(this.anim.raf);clearTimeout(this.anim.timer);this.anim=null}}
+ animateTo(k,tx,ty,ms=280){const t=this._clampT(k,tx,ty);this._stopAnim();if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches)ms=0;const from={k:this.k,tx:this.tx,ty:this.ty};const cx=this.W/2,cy=this.H/2;const w0=[(cx-from.tx)/from.k,(cy-from.ty)/from.k],w1=[(cx-t.tx)/t.k,(cy-t.ty)/t.k];const t0=performance.now();const ease=x=>1-Math.pow(1-x,3);
+  const step=now=>{if(!this.anim)return;clearTimeout(this.anim.timer);const u=ms?Math.min(1,(now-t0)/ms):1;const e=ease(u);const k=from.k*Math.pow(t.k/from.k,e);const wx=w0[0]+(w1[0]-w0[0])*e,wy=w0[1]+(w1[1]-w0[1])*e;this._set(k,cx-wx*k,cy-wy*k,true);if(u<1){this.anim.raf=requestAnimationFrame(step);this.anim.timer=setTimeout(()=>{if(this.anim){cancelAnimationFrame(this.anim.raf);step(performance.now())}},90)}else{this.anim=null;this._crisp()}};
+  this.anim={to:t,raf:requestAnimationFrame(step),timer:null}}
+ _set(k,tx,ty,inAnim){const c=this._clampT(k,tx,ty);this.k=c.k;this.tx=c.tx;this.ty=c.ty;this._fast();if(!inAnim)this._crispSoon()}
+ _crispSoon(){clearTimeout(this.crispTimer);this.crispTimer=setTimeout(()=>{if(!this.anim&&!this.drag&&!this.pinch)this._crisp()},120)}
  px(lon,lat){return [(lon+15)/55*this.W,(70-lat)/35*this.H]}
- _pt(e,click){const [sx,sy]=this._screen(e);const x=(sx-this.tx)/this.k,y=(sy-this.ty)/this.k;const lon=x/this.W*55-15,lat=70-y/this.H*35;const row=Math.floor((lat-35)/0.5),col=Math.floor((lon+15)/0.5);if(row<0||row>=70||col<0||col>=110)return;const gi=row*110+col;const li=LAND.gridIdx[gi];const info={row,col,gi,li,lat:35.25+row*0.5,lon:-14.75+col*0.5};if(click){this.onClick&&this.onClick(info)}else{this.onHover&&this.onHover(info)}}
- draw(values,scale,opts={}){const {agree=null,agreeN=4,stipple=true}=opts;this.last={values,scale,opts};const ctx=this.ctx,W=this.W,H=this.H;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,W,H);ctx.fillStyle="#ffffff";ctx.fillRect(0,0,W,H);ctx.setTransform(this.k,0,0,this.k,this.tx,this.ty);
-  const cw=W/110,ch=H/70;
-  // base land
+ _pt(e,click){const [sx,sy]=this._screen(e);const x=(sx-this.tx)/this.k,y=(sy-this.ty)/this.k;const lon=x/this.W*55-15,lat=70-y/this.H*35;const row=Math.floor((lat-35)/0.5),col=Math.floor((lon+15)/0.5);if(row<0||row>=70||col<0||col>=110){this.clearOverlay();return}const gi=row*110+col;const li=LAND.gridIdx[gi];const info={row,col,gi,li,lat:35.25+row*0.5,lon:-14.75+col*0.5};if(click){this.onClick&&this.onClick(info)}else{this.onHover&&this.onHover(info)}}
+ draw(values,scale,opts={}){this.last={values,scale,opts};this._renderCache();this._crisp()}
+ redraw(){this._crisp()}
+ _renderCache(){if(!this.cache){this.cache=document.createElement("canvas");this.cache.width=this.W;this.cache.height=this.H}const ctx=this.cache.getContext("2d");ctx.setTransform(1,0,0,1,0,0);this._vector(ctx,1)}
+ _fast(){const ctx=this.ctx;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,this.W,this.H);ctx.fillStyle="#fff";ctx.fillRect(0,0,this.W,this.H);if(this.cache){ctx.imageSmoothingEnabled=this.k<2.5;ctx.drawImage(this.cache,0,0,this.W,this.H,this.tx,this.ty,this.W*this.k,this.H*this.k)}this._labels();this.clearOverlay()}
+ _crisp(){const ctx=this.ctx;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,this.W,this.H);ctx.setTransform(this.k,0,0,this.k,this.tx,this.ty);this._vector(ctx,this.k);ctx.setTransform(1,0,0,1,0,0);this._labels()}
+ _vector(ctx,k){const W=this.W,H=this.H;ctx.fillStyle="#ffffff";ctx.fillRect(0,0,W,H);const cw=W/110,ch=H/70;
   ctx.fillStyle="#e9e9e9";for(let gi=0;gi<7700;gi++){const li=LAND.gridIdx[gi];if(li<0)continue;const row=Math.floor(gi/110),col=gi%110;ctx.fillRect(col*cw,(69-row)*ch,cw+0.5,ch+0.5)}
-  const hatch=[];
-  const N=this.full?7700:LAND.n;
-  for(let k=0;k<N;k++){const gi=this.full?k:null;let row,col,v;if(this.full){row=Math.floor(k/110);col=k%110;v=values[k]}else{const idx=LAND.lat[k];row=Math.round((LAND.lat[k]-35.25)/0.5);col=Math.round((LAND.lon[k]+14.75)/0.5);v=values[k]}
+  if(!this.last){this._lines(ctx,k);return}const {values,scale,opts}=this.last;const {agree=null,agreeN=4,stipple=true}=opts;const hatch=[];const N=this.full?7700:LAND.n;
+  for(let i=0;i<N;i++){let row,col,v;if(this.full){row=Math.floor(i/110);col=i%110;v=values[i]}else{row=Math.round((LAND.lat[i]-35.25)/0.5);col=Math.round((LAND.lon[i]+14.75)/0.5);v=values[i]}
    if(v==null||Number.isNaN(v))continue;if(Math.abs(v)<1e-9&&scale.kind==="div")continue;const col_=scale.colour(v);if(!col_)continue;const x=col*cw,y=(69-row)*ch;if(col_==="hatch"){ctx.fillStyle=scale.over;ctx.fillRect(x,y,cw+0.5,ch+0.5);hatch.push([x,y]);continue}ctx.fillStyle=col_;ctx.fillRect(x,y,cw+0.5,ch+0.5)}
-  if(hatch.length){ctx.strokeStyle="#ffffff";ctx.lineWidth=1/this.k;ctx.beginPath();for(const [x,y] of hatch){ctx.moveTo(x,y+ch);ctx.lineTo(x+cw,y);ctx.moveTo(x,y+ch/2);ctx.lineTo(x+cw/2,y)}ctx.stroke()}
-  if(agree&&stipple&&!this.full){ctx.fillStyle="rgba(30,30,30,.55)";for(let k=0;k<LAND.n;k++){const a=agree[k];if(a===255||a>=agreeN)continue;const v=values[k];if(v==null||Number.isNaN(v)||Math.abs(v)<1e-9)continue;const row=Math.round((LAND.lat[k]-35.25)/0.5),col=Math.round((LAND.lon[k]+14.75)/0.5);ctx.beginPath();ctx.arc(col*cw+cw/2,(69-row)*ch+ch/2,1.4/Math.sqrt(this.k),0,6.28);ctx.fill()}}
-  this.lines();ctx.setTransform(1,0,0,1,0,0);
-  ctx.fillStyle="#666";ctx.font="13px Calibri, sans-serif";const sp=(lon,lat)=>{const [x,y]=this.px(lon,lat);return [x*this.k+this.tx,y*this.k+this.ty]};for(let la=40;la<=65;la+=5){const [x,y]=sp(-14.8,la);if(y>0&&y<H)ctx.fillText(la+"°N",Math.max(3,x+3),y-2)}for(let lo=-10;lo<=30;lo+=10){const [x,y]=sp(lo,35.2);if(x>0&&x<W)ctx.fillText((lo<0?-lo+"°W":lo+"°E"),x+2,Math.min(H-3,y-3))}
-  if(this.k>1.01){ctx.fillStyle="rgba(34,39,46,.75)";ctx.fillRect(W-66,6,60,20);ctx.fillStyle="#fff";ctx.font="12px Calibri, sans-serif";ctx.fillText("× "+this.k.toFixed(1),W-58,20)}}
- lines(){const ctx=this.ctx;if(!D.geo)return;ctx.lineWidth=1.1/this.k;ctx.strokeStyle="#555";const draw=g=>{for(const f of g.features){const t=f.geometry.type,cs=f.geometry.coordinates;const rings=t==="LineString"?[cs]:t==="MultiLineString"?cs:t==="Polygon"?cs:t==="MultiPolygon"?cs.flat():[];for(const r of rings){ctx.beginPath();r.forEach((p,i)=>{const [x,y]=this.px(p[0],p[1]);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke()}}};draw(D.geo.coast);ctx.strokeStyle="#777";ctx.lineWidth=0.8/this.k;draw(D.geo.borders)}
- highlight(info){if(!info)return;const cw=this.W/110,ch=this.H/70;const ctx=this.ctx;ctx.setTransform(this.k,0,0,this.k,this.tx,this.ty);ctx.strokeStyle="#000";ctx.lineWidth=2/this.k;ctx.strokeRect(info.col*cw,(69-info.row)*ch,cw,ch);ctx.setTransform(1,0,0,1,0,0)}
+  if(hatch.length){ctx.strokeStyle="#ffffff";ctx.lineWidth=1/k;ctx.beginPath();for(const [x,y] of hatch){ctx.moveTo(x,y+ch);ctx.lineTo(x+cw,y);ctx.moveTo(x,y+ch/2);ctx.lineTo(x+cw/2,y)}ctx.stroke()}
+  if(agree&&stipple&&!this.full){ctx.fillStyle="rgba(30,30,30,.55)";for(let i=0;i<LAND.n;i++){const a=agree[i];if(a===255||a>=agreeN)continue;const v=values[i];if(v==null||Number.isNaN(v)||Math.abs(v)<1e-9)continue;const row=Math.round((LAND.lat[i]-35.25)/0.5),col=Math.round((LAND.lon[i]+14.75)/0.5);ctx.beginPath();ctx.arc(col*cw+cw/2,(69-row)*ch+ch/2,1.8/Math.sqrt(k),0,6.28);ctx.fill()}}
+  this._lines(ctx,k)}
+ _lines(ctx,k){if(!D.geo)return;ctx.lineWidth=1.3/k;ctx.strokeStyle="#555";const draw=g=>{for(const f of g.features){const t=f.geometry.type,cs=f.geometry.coordinates;const rings=t==="LineString"?[cs]:t==="MultiLineString"?cs:t==="Polygon"?cs:t==="MultiPolygon"?cs.flat():[];for(const r of rings){ctx.beginPath();r.forEach((p,i)=>{const [x,y]=this.px(p[0],p[1]);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke()}}};draw(D.geo.coast);ctx.strokeStyle="#777";ctx.lineWidth=0.9/k;draw(D.geo.borders)}
+ _labels(){const ctx=this.ctx,W=this.W,H=this.H;ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle="#666";ctx.font="15px Calibri, sans-serif";const sp=(lon,lat)=>{const [x,y]=this.px(lon,lat);return [x*this.k+this.tx,y*this.k+this.ty]};
+  for(let la=40;la<=65;la+=5){const [x,y]=sp(-14.8,la);if(y>14&&y<H)ctx.fillText(la+"°N",Math.max(4,x+4),y-3)}for(let lo=-10;lo<=30;lo+=10){const [x,y]=sp(lo,35.2);if(x>0&&x<W-30)ctx.fillText((lo<0?-lo+"°W":lo+"°E"),x+3,Math.min(H-4,y-4))}
+  if(this.k>1.01){ctx.fillStyle="rgba(34,39,46,.75)";ctx.fillRect(W-74,8,66,24);ctx.fillStyle="#fff";ctx.font="14px Calibri, sans-serif";ctx.fillText("× "+this.k.toFixed(1),W-64,25)}}
+ clearOverlay(){this.octx.setTransform(1,0,0,1,0,0);this.octx.clearRect(0,0,this.W,this.H)}
+ highlight(info){this.clearOverlay();if(!info)return;const cw=this.W/110,ch=this.H/70;const o=this.octx;o.setTransform(this.k,0,0,this.k,this.tx,this.ty);o.strokeStyle="#000";o.lineWidth=2.5/this.k;o.strokeRect(info.col*cw,(69-info.row)*ch,cw,ch);o.setTransform(1,0,0,1,0,0)}
 }
 
 /* ============ legend ============ */
@@ -391,7 +416,7 @@ async function viewWork(){const F=field(S.h,S.model,wkey(),S.cmp,S.metric);const
  <div class="state" id="state"></div><div id="ed"></div><div class="caveat">This counts days inside a hazard footprint. It says nothing about damage, exposure or people.</div></div>
  <div><div class="card" id="hover">${hoverPanelHTML(null,F)}</div><div class="card" style="margin-top:12px"><h3>Layers</h3><div class="small">Coastline and borders: Natural Earth 110m. AR6 region boxes, graticule and filtered-event disks are build items.</div></div>
  <div class="card" style="margin-top:12px"><h3>Copy</h3><div class="row" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button class="btn" id="copyCap">Copy numbers + caption</button></div><div class="small" id="copyMsg" style="margin-top:4px"></div></div></div></div>`;
- const map=new GridMap(document.getElementById("map"),{onHover:i=>{document.getElementById("hover").innerHTML=hoverPanelHTML(i,F);map.draw(F.field,sc,{agree:F.agree,agreeN:S.agreeN,stipple:S.stipple&&S.cmp!=="abs"});if(i&&i.li>=0)map.highlight(i)},onClick:i=>{if(i.li>=0)openPlace({lat:i.lat,lon:i.lon})}});
+ const map=new GridMap(document.getElementById("map"),{onHover:i=>{document.getElementById("hover").innerHTML=hoverPanelHTML(i,F);map.highlight(i&&i.li>=0?i:null)},onClick:i=>{if(i.li>=0)openPlace({lat:i.lat,lon:i.lon})}});
  map.draw(F.field,sc,{agree:F.agree,agreeN:S.agreeN,stipple:S.stipple&&S.cmp!=="abs"});
  document.getElementById("legend").innerHTML=legendHTML(sc,F.field);bindLegend(document.getElementById("legend"),render);
  document.getElementById("state").textContent=stateSentence(F);document.getElementById("ed").innerHTML=editorHTML();bindEditor(document.getElementById("ed"),F.field,render);
@@ -444,7 +469,7 @@ async function viewSingle(){const sh=await loadSH();const v=S.svar,vd=VARS[v],wk
  <div class="def" style="margin-top:8px"><b>Feeds</b> <span class="hzlab ${fam}">${HZ[fam].label}</span> as ${HZ[fam].primary===v?"the primary variable":"a conditioning channel"}.</div>
  <div class="readout" style="margin-top:10px">Land mean of the mapped field: <b>${fmtS(lm(vals))}</b> ${unit}${S.smetric==="days"?` · 1981–2010: ${fmtS(lm(hd))}`:""}</div>
  <div class="card" style="margin-top:12px" id="hover"><div class="small">Hover a cell.</div></div></div></div>`;
- const map=new GridMap(document.getElementById("map"),{full:true,onHover:i=>{const gi=i.gi;const t=sh.threshold[v][gi];document.getElementById("hover").innerHTML=`<div class="readout"><b>${i.lat.toFixed(2)}°N ${i.lon.toFixed(2)}°E</b>${i.li<0?" (sea)":""}<br>mapped value: <b>${fmtS(vals[gi])}</b><br>extreme days/yr: 1981–2010 ${fmtS(hd[gi])} → ${fmtS(days[gi])}<br>threshold here: ${t==null?"–":vd.disp(t)}${vd.floorOn&&t!=null?(Math.abs(t-vd.floor)<1e-9*Math.max(1,Math.abs(vd.floor))?" · <b>floor binds</b>":" · local percentile binds"):""}<br>JJA share: ${sh.jja_share[`${v}|${wk}`][gi]<0?"–":sh.jja_share[`${v}|${wk}`][gi]+"%"}</div>`;map.draw(vals,sc,{});map.highlight(i)},onClick:i=>{openPlace({lat:i.lat,lon:i.lon})}});
+ const map=new GridMap(document.getElementById("map"),{full:true,onHover:i=>{const gi=i.gi;const t=sh.threshold[v][gi];document.getElementById("hover").innerHTML=`<div class="readout"><b>${i.lat.toFixed(2)}°N ${i.lon.toFixed(2)}°E</b>${i.li<0?" (sea)":""}<br>mapped value: <b>${fmtS(vals[gi])}</b><br>extreme days/yr: 1981–2010 ${fmtS(hd[gi])} → ${fmtS(days[gi])}<br>threshold here: ${t==null?"–":vd.disp(t)}${vd.floorOn&&t!=null?(Math.abs(t-vd.floor)<1e-9*Math.max(1,Math.abs(vd.floor))?" · <b>floor binds</b>":" · local percentile binds"):""}<br>JJA share: ${sh.jja_share[`${v}|${wk}`][gi]<0?"–":sh.jja_share[`${v}|${wk}`][gi]+"%"}</div>`;map.highlight(i)},onClick:i=>{openPlace({lat:i.lat,lon:i.lon})}});
  map.draw(vals,sc,{});document.getElementById("legend").innerHTML=legendHTML(sc,vals,{unit,ends:kind==="div"});bindLegend(document.getElementById("legend"),render);
  document.getElementById("ed").innerHTML=editorHTML();bindEditor(document.getElementById("ed"),vals,()=>{S.scale.custom=true;render()});
  document.getElementById("state").textContent=`${vd.name} (${v}), MPI-ESM1-2-HR, ${S.scen==="hist"?"1981–2010":SCEN[S.scen]+" "+HOR[S.hor]}: ${unit}. Rule: ${vd.type==="high"?">":"<"} local p${Math.round(vd.pct*100)}${vd.floorOn?" and floor "+vd.floorTxt:""}. Exact per-cell geometry from the daily masks; no disk approximation.${S.scale.custom?" (custom colour scale)":""}`;
