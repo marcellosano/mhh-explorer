@@ -1,0 +1,162 @@
+<meta charset="utf-8">
+<title>Compound Europe Explorer Spec</title>
+<style>
+:root{--bg:#f3f3ef;--panel:#fff;--ink:#22272e;--muted:#6b6f76;--line:#d9d9d2;--soft:#eeeee9;--heat:#ad1f2d;--flood:#2171b5;--wind:#5e3c99;--teal:#3b8ea5;--warn:#b7791f;--chip:#f7f7f4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1d21;--panel:#24272c;--ink:#e8e8e3;--muted:#a3a7ae;--line:#3a3e46;--soft:#2c3036;--chip:#2c3036}}
+:root[data-theme="dark"]{--bg:#1b1d21;--panel:#24272c;--ink:#e8e8e3;--muted:#a3a7ae;--line:#3a3e46;--soft:#2c3036;--chip:#2c3036}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Calibri,"Segoe UI",system-ui,sans-serif;font-size:15px;line-height:1.5}
+.wrap{max-width:900px;margin:0 auto;padding-block:28px 60px;padding-inline:20px}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font-size:30px;line-height:1.15}h2{font-size:21px;margin-top:34px;padding-top:12px;border-top:1px solid var(--line)}h3{font-size:16px;margin-top:18px}
+p{margin:8px 0;max-width:70ch}
+.lede{font-size:17px;color:var(--muted);max-width:75ch}
+.meta{font-size:13px;color:var(--muted);margin-top:6px}
+ul,ol{margin:6px 0;padding-left:22px;max-width:75ch}li{margin:3px 0}
+table{border-collapse:collapse;width:100%;font-size:13.5px;margin:10px 0}
+th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tw{overflow-x:auto}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:12px 0}
+.box.warn{border-color:var(--warn)}
+.box.dec{border-left:4px solid var(--heat)}
+.tag{display:inline-block;padding:1px 8px;border-radius:999px;background:var(--chip);border:1px solid var(--line);font-size:12px;margin-right:4px}
+.h{color:var(--heat);font-weight:700}.f{color:var(--flood);font-weight:700}.w{color:var(--wind);font-weight:700}
+code{font-family:Menlo,Consolas,monospace;font-size:13px;background:var(--soft);padding:0 4px;border-radius:3px}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:14px}
+.small{font-size:13px;color:var(--muted)}
+</style>
+<div class="wrap">
+<h1>Compound Europe: interactive explorer for the compound-hazard results</h1>
+<p class="lede">A specification for a private, shareable web page that lets co-authors, reviewers and stakeholders explore the manuscript's compound-hazard results: single-hazard extremes, single-variable clusters and compound-event footprints, across five models, three scenarios and three time windows, with colour scales under the reader's control and every number traceable to a file.</p>
+<div class="meta">Draft v0.1 · 18 September 2026 · prepared for Marcello Sanò and co-authors (Ferrario, Torresan, Critto) · companion to the clickable mockup</div>
+
+<div class="box warn"><b>Status.</b> Nothing is built beyond the mockup. This document is the proposal to approve, amend or reject. The mockup runs on real data for the compound layers and for one model's single-hazard layer; the cluster layer and the analogue cards are concept panels. Decisions needed from the lead author are collected at the end.</div>
+
+<h2>1. Purpose and audiences</h2>
+<p>One page, three uses. A co-author or referee checks a number, reproduces a figure, or tests how a definition or filter changes the picture. A scientist outside the team reads definitions, model agreement and parameters where they bite. A planner or civil-protection officer reads one map, one sentence and one place card in days per year, and leaves with a caption that carries its own caveats.</p>
+<div class="kv"><b>Brief mode</b><span>five controls, the paper's colour scale locked, plain-language captions, storylines, place card. Default for first visits and phones.</span><b>Full mode</b><span>everything: all models and statistics, comparison modes, filters, colour editor, cluster layer, sensitivity presets, provenance and the reconciliation ledger.</span></div>
+
+<h2>2. What the data allows</h2>
+<p>Three layers exist on disk for every model, and only one of them can be recomputed in a browser.</p>
+<div class="tw"><table><tr><th>Layer</th><th>What exists</th><th>Size on disk</th><th>What the page can do with it</th></tr>
+<tr><td><b>Single hazards</b> (Phase 2)</td><td>Daily binary extreme masks and exceedance fields for ten extreme types, plus one threshold map per type, per model</td><td class="n">34 GB (Vault)</td><td>Never shipped. Pre-computed offline into per-cell summaries per window: extreme days per year, mean and maximum exceedance, longest run, seasonal shares, threshold and which bound binds. Exact cell geometry, no disks. Sea cells kept: wind extremes at 0.5° are almost entirely over sea.</td></tr>
+<tr><td><b>Single-variable clusters</b> (Phase 3)</td><td>DBSCAN cluster catalogues, ten variables, per model: centroid, extent, duration, grid points, exceedance</td><td class="n">≈1.7 million rows</td><td>Pre-rasterised cluster-days per cell for all ten variables. Packed rows for the seven compound-relevant variables so size, duration and season filters re-rasterise the map live. The two humidity variables and the largest rainfall clusters ship as summaries plus a top-N subset.</td></tr>
+<tr><td><b>Compound events</b> (Phase 4)</td><td>Compound catalogues per model with centroid, extent, duration, conditioning channels, severity</td><td class="n">40,644 heat-drought · 237,572 flood · 16,010 windstorm</td><td>Shipped packed. Occupancy grids pre-computed for every model × window; the browser re-runs the paper's disk rasteriser on any filtered subset, so every filter changes the map, not just a histogram.</td></tr>
+<tr><td><b>Clustering presets</b> (sensitivity sweep)</td><td>Five DBSCAN settings, compound catalogues</td><td class="n">MPI only</td><td>Verified scope: MPI-ESM1-2-HR, 1981–2010 and SSP5-8.5 2071–2100 (windstorm SSP3-7.0); low-eps/high-min_samples produced no clusters at all, low-eps/low-min_samples none for heat-drought and windstorm. Shown as presets with that scope printed and degenerate settings labelled, never as blank maps.</td></tr>
+<tr><td><b>Published tables</b></td><td>Continental and regional change factors, severity, seasonality, shift tests, analogue factors, per-model agreement</td><td class="n">small</td><td>Read verbatim into the page; used for the headline factors, the analogue cards and the reconciliation ledger.</td></tr></table></div>
+<p><b>What no page can do.</b> Re-run DBSCAN or thresholds (needs the 34 GB of masks), draw exact compound footprints (only centroid and extent are stored), show daily series, or fetch anything from outside its own files. Windstorm disks reach about 2,100 km radius, so windstorm spatial questions default to the exact pressure and wind layers.</p>
+
+<h2>3. Views</h2>
+<p>Left rail in pipeline order. Every view shares the same controls and the same map engine.</p>
+<div class="tw"><table><tr><th>#</th><th>View</th><th>Question it answers</th><th>Mockup</th></tr>
+<tr><td>0</td><td>Headline</td><td>Where does the hazard change, by how much, in what unit, do the models agree — readable in two minutes. One map, three numbers, one caption, three storylines, place search.</td><td>live</td></tr>
+<tr><td>1</td><td>Compound workbench</td><td>Any hazard × model or ensemble statistic × scenario × horizon × metric, with the full colour editor, hover readout with the five per-model values, and a state sentence that travels with every screenshot.</td><td>live</td></tr>
+<tr><td>2</td><td>Event explorer</td><td>Which compound events exist, how big, how long, when, with which conditioning channels; the map rebuilt from exactly the events I keep; per-model ledger; largest events table.</td><td>live (heat, flood, windstorm)</td></tr>
+<tr><td>3</td><td>Single hazards</td><td>How each of the ten extreme types changes on its own, with exact per-cell geometry, and what counts as extreme at each cell (percentile, floor, which binds).</td><td>live, one model</td></tr>
+<tr><td>4</td><td>Clusters</td><td>What DBSCAN grouped into events per variable; duration × extent; filters by size, duration, season that re-rasterise the map; attrition from cluster to compound event.</td><td>concept</td></tr>
+<tr><td>5</td><td>Compare models</td><td>Five models side by side on one locked scale, ensemble panel, agreement-count panel, one hover reading all panels.</td><td>live</td></tr>
+<tr><td>6</td><td>Season and shift</td><td>Month-of-start distribution, share outside June–August, latitude profile and centroid shift per model.</td><td>live (raw statistics)</td></tr>
+<tr><td>7</td><td>Disaster analogues</td><td>Greece 2021, Western Europe 2021, Vaia 2018: published factors, editable fingerprints, live recount.</td><td>concept</td></tr>
+<tr><td>8</td><td>Place card</td><td>For one cell: what counts as extreme here, days per year now and later for all three hazards, per-model spread, plain-English dossier.</td><td>live</td></tr>
+<tr><td>9</td><td>Method and trust</td><td>Pipeline, parameter tables from the model configs, compound rules, sensitivity scope, reconciliation ledger against the published tables, limitations, citation.</td><td>live (static)</td></tr></table></div>
+
+<h2>4. Controls</h2>
+<div class="tw"><table><tr><th>Control</th><th>Options</th><th>Default</th></tr>
+<tr><td>Hazard</td><td><span class="h">heat-drought</span> · <span class="f">flood</span> · <span class="w">windstorm</span> (recolours the page)</td><td>heat-drought</td></tr>
+<tr><td>Scenario · horizon</td><td>1981–2010 · SSP1-2.6 · SSP3-7.0 · SSP5-8.5 × 2031–2060 · 2071–2100, in the paper's colours</td><td>SSP5-8.5, 2071–2100</td></tr>
+<tr><td>Model</td><td>ensemble mean, median, min, max, spread, agreement count, or any of the five GCMs; all derived in the browser from five shipped planes, never pre-averaged</td><td>ensemble mean</td></tr>
+<tr><td>Show</td><td>value · change vs 1981–2010 · ratio to 1981–2010 · emergence (new where none)</td><td>change</td></tr>
+<tr><td>Metric</td><td>days per year under an event · events per year · (build) unique days, mean duration, cumulative severity, intensity, first year in record, month of peak</td><td>days per year</td></tr>
+<tr><td>Units</td><td>days per year · months per year (÷ 30.44) · % of the year, conversion printed in the legend</td><td>days</td></tr>
+<tr><td>Agreement</td><td>stipple cells where fewer than N of 5 models share the median's sign of change, N = 3, 4, 5; hatch, desaturate or mask in the build</td><td>stipple below 4</td></tr>
+<tr><td>Colour scale</td><td>stepped or continuous; band edges typed or dragged; rules: paper default, policy breaks (0 / 7 / 30 / 60 / 90 / 120 days), quantiles, equal interval; per-band on/off; hatch above the top edge; scale lock across scenario, horizon and model; reset. Any departure stamps “custom colour scale” on the legend and in every copied caption.</td><td>paper default, locked</td></tr>
+<tr><td>Event filters</td><td>duration, equivalent radius, month of start and seasons, number of conditioning hazards, conditioning channels as require / ignore / exclude, severity, spatial box, models pooled (badged; never in headlines); presets: Greece-class, Western-Europe-class, Vaia-class, three-way heat-drought, largest 1%</td><td>none</td></tr>
+<tr><td>Clustering preset</td><td>nominal and the four sweep corners; enabled only for MPI and the two swept windows; forces single-model mode with an amber banner</td><td>nominal</td></tr>
+<tr><td>Share</td><td>copy link (state in the URL), copy numbers + caption, print stylesheet; no downloads (blocked by the host), viewers screenshot</td><td></td></tr></table></div>
+
+<h2>5. Rules that keep it honest</h2>
+<ul>
+<li><b>Every number names its statistic.</b> The map's ensemble statistic and the published change factor are labelled separately; paired per-model ratios are always aggregated after pairing, never as a ratio of ensemble means.</li>
+<li><b>No caption without an agreement clause.</b> 5 of 5 “all five models agree”; 4 of 5 “four agree, one disagrees”; 3 of 5 “the models are split”; 2 or fewer: the sentence refuses to state a direction.</li>
+<li><b>Three cell states:</b> no events in either window (no colour), emergent (none in 1981–2010, some later), and change with a sign. Ratios are never shown for a zero baseline.</li>
+<li><b>Days per year</b> default to the union of event intervals per cell. The summed version (with multiplicity where events overlap) stays available and is labelled; on the current grids the two differ by 2–5 % in the Balkans and no cell exceeds 365.</li>
+<li><b>Single-model, sensitivity and pooled views</b> carry a badge on every number and in every copied caption.</li>
+<li><b>The caveat line</b> on every view: this counts days inside a hazard footprint; it says nothing about damage, exposure or people.</li>
+<li><b>Reconciliation:</b> the page recomputes the continental and regional factors from the shipped packs and shows them beside the published tables with PASS/FAIL at the printed precision of each cell.</li>
+</ul>
+
+<h2>6. Data packaging and byte budget</h2>
+<p>Everything ships as files next to the page; the host serves them from the same origin and allows 64 MB per version, 16 MB per text file. Gzip-inflating in the browser roughly halves the totals below if needed.</p>
+<div class="tw"><table><tr><th>File</th><th>Source</th><th>Built by</th><th>Size (raw JSON, mockup measured)</th></tr>
+<tr><td>grid and geometry</td><td>land index, Natural Earth 110m coast and borders</td><td>01_grid, 02_geo</td><td class="n">0.1 MB</td></tr>
+<tr><td>compound occupancy grids (days, counts; build adds unique days and months)</td><td>Phase-4 catalogues × 5 GCMs × 7 windows</td><td>03_occupancy</td><td class="n">4.0 MB</td></tr>
+<tr><td>compound catalogues, packed per hazard</td><td>Phase-4 catalogues</td><td>04_events</td><td class="n">12.6 MB (typed arrays: ≈7 MB)</td></tr>
+<tr><td>single-hazard summaries, ten variables, full grid</td><td>Phase-2 masks and thresholds (one-time pass over 34 GB)</td><td>06_extremes, 07_thresholds</td><td class="n">8 MB for one model → ≈14 MB for five as binary</td></tr>
+<tr><td>cluster occupancy grids + packed rows (seven variables) + summaries</td><td>Phase-3 catalogues</td><td>05_clusters</td><td class="n">≈18 MB as binary</td></tr>
+<tr><td>sensitivity packs (MPI, two windows, five settings)</td><td>Sensitivity_v2 work tree and S7 tables</td><td>09_sensitivity</td><td class="n">≈2 MB</td></tr>
+<tr><td>published tables, provenance, copy, manifest, self-check</td><td>results/*.csv, model configs, Outputs/v2_analyses</td><td>08, 10, 11, 12</td><td class="n">≈0.5 MB</td></tr>
+<tr><td><b>Total</b></td><td></td><td></td><td class="n"><b>≈45–50 MB raw, ≈25 MB gzipped</b></td></tr></table></div>
+<p>Build scripts live in the repository under <code>web/build/</code>, read the project tree and the Vault, and write a data directory that the page reads; a manifest records every file's hash, shape, source and commit. Every number that also appears in the manuscript is looked up from the published tables, never typed.</p>
+
+<h2>7. Build phases</h2>
+<p>Phases are dependencies, not dates.</p>
+<ol>
+<li><b>Sandbox checks</b> on the published mockup: sibling-file fetch (passed in the mockup), URL hash arriving through the viewer, clipboard, Web Worker from a blob (fallback: main-thread slices). Data contract written.</li>
+<li><b>Export spine and gates:</b> grid, geometry, occupancy, events, published tables, provenance, manifest, self-check. Gates: land-cell count matches the paper's mask; occupancy counts reproduce the spatial-shift cells file; event counts reproduce the per-model disaggregation table; factors PASS.</li>
+<li><b>Map and colour engine</b> (largely exists in the mockup): projections, legend histogram, editor, lock, badges.</li>
+<li><b>Workbench, compare, URL state, captions.</b></li>
+<li><b>Event explorer and worker</b> re-rasterisation with the unfiltered-rebuild check printed on screen.</li>
+<li><b>Place card, headline, storylines, Brief mode.</b></li>
+<li><b>Single hazards:</b> the one-time pass over the Vault masks for all five models (about one minute per model on this Mac) and the threshold inspector.</li>
+<li><b>Cluster layer</b> exports and filters.</li>
+<li><b>Seasonality, shift, analogues</b> from the published tables plus live recounts.</li>
+<li><b>Sensitivity and trust panel</b>, reconciliation ledger.</li>
+<li><b>Phone, accessibility, performance pass;</b> co-author read-through of all copy as text; adversarial attempt to build a misleading view; standalone build for a university page (folder build, or a single-file Atlas with the headline views only).</li>
+</ol>
+
+<h2>8. Not in v1, parked</h2>
+<ul>
+<li>Exact per-event cell footprints (needs a new pipeline pass writing cluster-to-cell membership; highest-value next addition).</li>
+<li>Sensitivity presets for the other four models and other windows (droplet rerun).</li>
+<li>Daily series, animations, case-study day frames.</li>
+<li>Population, exposure, damage overlays; return periods; anything called “risk”.</li>
+<li>ERA5 observed analogue overlays; Mann–Kendall trend maps as layers.</li>
+<li>Town-name search (a 20 KB gazetteer is cheap; parked until the copy rules are settled).</li>
+</ul>
+
+<h2>9. Corrections found while specifying</h2>
+<ul>
+<li>The sensitivity sweep is thinner than any first draft assumed (MPI only, two windows, two degenerate settings). The page must read scope from the data, not assume it.</li>
+<li>Days per year summed over overlapping events can exceed the union of intervals; the difference is small on the current grids but the union should be the default.</li>
+<li>Rainfall thresholds and exceedances are stored in kg m⁻² s⁻¹; any rounding to fixed decimals destroys them. The export must keep significant digits.</li>
+<li>Phase-2 grids run north-to-south, occupancy grids south-to-north; the contract fixes one cell order.</li>
+<li>Wind extremes at 0.5° occur almost only over sea, so the single-hazard layer keeps sea cells and the windstorm story leans on pressure.</li>
+<li>Regional factors in the paper use four overlapping bounding boxes, not AR6 polygons; the page must reproduce the boxes to reconcile.</li>
+</ul>
+
+<h2>10. Zoom and the data explorer (added 18 Sep, afternoon)</h2>
+<p><b>Zoom.</b> Every map pans and zooms (scroll, drag, double-click to reset) in the mockup. The data are 0.5° cells, so zoom enlarges cells rather than adding detail; the hint under each map says so. Pinch on touch screens and a mini-map are build items.</p>
+<p><b>Data explorer, five levels.</b> A dedicated view opens any table the page holds, with a filter expression (<code>dur>=10 &amp; lat>50 &amp; model==mpi</code>), sortable columns, paging, row detail and copy-as-CSV (downloads once hosted outside Claude). Each map cell links into it.</p>
+<div class="tw"><table><tr><th>Level</th><th>What</th><th>Status</th><th>Cost</th></tr>
+<tr><td>1 · Grids</td><td>Per-cell values behind every map: compound occupancy per model and window; single-hazard per-cell summaries; thresholds</td><td>live in the mockup</td><td>shipped already</td></tr>
+<tr><td>2 · Events</td><td>Every compound event as catalogued, all columns; “events touching this cell” from the place card</td><td>live in the mockup</td><td>shipped already</td></tr>
+<tr><td>3 · Clusters</td><td>The DBSCAN clusters each event was matched from, with the event → primary-cluster link</td><td>build</td><td>≈12 MB packed rows (seven variables) + join key</td></tr>
+<tr><td>4 · Yearly counts</td><td>Extreme days per cell per year, 1981–2100, per model and variable</td><td>build</td><td>≈5 MB per variable, one more pass over the masks</td></tr>
+<tr><td>5 · Daily values</td><td>The daily masks, exceedances and raw ISIMIP series for one cell</td><td>needs a data service</td><td>34 GB stay on a server (droplet or university host); a small API answers one cell at a time; only possible once the page leaves Claude</td></tr></table></div>
+<p>Level 5 is the only one that changes the architecture: a static page cannot hold the daily data, so “down to the raw data” means static page plus a small read-only service next to the Vault copy. Everything else stays static.</p>
+
+<h2>11. Decisions for the lead author</h2>
+<div class="box dec"><ol>
+<li><b>Scope of v1:</b> all ten views as above, or the seven live ones first (0, 1, 2, 3, 5, 6, 8, 9) with clusters and analogues following.</li>
+<li><b>Single-hazard pass over the Vault masks</b> for all five models: in scope for v1 (recommended; it is the only exact-geometry layer).</li>
+<li><b>Default “days per year” definition:</b> union of intervals (recommended) or summed event-days as in the current slides.</li>
+<li><b>Show the sensitivity sweep at all</b> before the reviewer response is settled, and if so as the S7 tables present it (count ratio beside footprint and cell-day ratios, degenerate settings labelled).</li>
+<li><b>Cluster rows to ship:</b> seven compound-relevant variables complete plus the largest rainfall clusters (≈12 MB), or summaries only.</li>
+<li><b>Pooled-model event views:</b> allowed for distribution shape only and badged (recommended), or removed.</li>
+<li><b>Embargo and audience:</b> private link to co-authors until acceptance; the university build waits for acceptance and a data DOI.</li>
+<li><b>Name, author line and citation block</b> as they should appear on the page.</li>
+<li><b>Level 5 of the data explorer:</b> a small read-only data service beside the Vault copy (droplet or university host) so a cell's daily series can be requested, or stop at level 4 and keep the platform fully static.</li>
+</ol></div>
+<p class="small">Sources: the v2 manuscript masters, the model configs in the pipeline repository, the Outputs tree (Ensemble/raw_v2, Sensitivity_v2, v2_analyses), the Vault Phase-2 masks, and a three-concept design panel with two judges and a completeness critic run on 18 September 2026.</p>
+</div>

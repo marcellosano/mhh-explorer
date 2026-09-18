@@ -1,0 +1,552 @@
+<meta charset="utf-8">
+<title>Compound Europe</title>
+<style>
+:root{--bg:#f3f3ef;--panel:#ffffff;--ink:#22272e;--muted:#6b6f76;--line:#d9d9d2;--soft:#eeeee9;--paper:#ffffff;--land:#e9e9e9;--heat:#ad1f2d;--flood:#2171b5;--wind:#5e3c99;--teal:#3b8ea5;--hist:#C6DBEF;--s126:#3182BD;--s370:#E6961E;--s585:#AD1F2D;--accent:#ad1f2d;--chip:#f7f7f4;--warn:#b7791f;--ok:#2f7d4f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1d21;--panel:#24272c;--ink:#e8e8e3;--muted:#a3a7ae;--line:#3a3e46;--soft:#2c3036;--chip:#2c3036}}
+:root[data-theme="dark"]{--bg:#1b1d21;--panel:#24272c;--ink:#e8e8e3;--muted:#a3a7ae;--line:#3a3e46;--soft:#2c3036;--chip:#2c3036}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Calibri,"Segoe UI",system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.4}
+h1,h2,h3{font-weight:700;margin:0;text-wrap:balance}
+h1{font-size:20px}h2{font-size:17px}h3{font-size:14px}
+button,select,input{font:inherit;color:inherit}
+.top{display:flex;align-items:center;gap:14px;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:5;flex-wrap:wrap}
+.top .sub{color:var(--muted);font-size:12px}
+.top .spacer{flex:1}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;background:var(--chip);border:1px solid var(--line);font-size:12px;white-space:nowrap}
+.pill.warn{border-color:var(--warn);color:var(--warn)}
+.pill.ok{border-color:var(--ok);color:var(--ok)}
+.pill.mock{background:#fff4d6;color:#7a5a00;border-color:#e6c26a}
+.btn{padding:4px 10px;border:1px solid var(--line);background:var(--chip);border-radius:6px;cursor:pointer}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn:focus-visible,.chip:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.shell{display:grid;grid-template-columns:150px 1fr;min-height:calc(100vh - 50px)}
+.rail{border-right:1px solid var(--line);background:var(--panel);padding:8px 6px;display:flex;flex-direction:column;gap:2px}
+.rail button{text-align:left;padding:6px 8px;border:0;background:transparent;border-radius:6px;cursor:pointer;display:flex;gap:8px;align-items:baseline}
+.rail button .n{color:var(--muted);width:12px;font-variant-numeric:tabular-nums}
+.rail button.on{background:var(--soft);font-weight:600}
+.rail button.concept .n::after{content:""}
+.rail .lab{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;padding:8px 8px 2px}
+main{padding:10px 16px 24px;min-width:0}
+.controls{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:8px 0 10px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.grp{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.grp .lab{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-right:4px}
+.chip{padding:3px 10px;border:1px solid var(--line);border-radius:999px;background:var(--chip);cursor:pointer;font-size:13px}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip.hz.on[data-h="heat_drought_fire"]{background:var(--heat);border-color:var(--heat);color:#fff}
+.chip.hz.on[data-h="flood"]{background:var(--flood);border-color:var(--flood);color:#fff}
+.chip.hz.on[data-h="windstorm"]{background:var(--wind);border-color:var(--wind);color:#fff}
+.chip.sc.on[data-s="hist"]{background:var(--hist);border-color:var(--hist);color:#22272e}
+.chip.sc.on[data-s="ssp126"]{background:var(--s126);border-color:var(--s126);color:#fff}
+.chip.sc.on[data-s="ssp370"]{background:var(--s370);border-color:var(--s370);color:#fff}
+.chip.sc.on[data-s="ssp585"]{background:var(--s585);border-color:var(--s585);color:#fff}
+select{padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--chip)}
+.brief .adv{display:none}
+.grid2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:16px;align-items:start}
+.grid2.wide{grid-template-columns:minmax(0,2.2fr) minmax(260px,1fr)}
+@media (max-width:900px){.shell{grid-template-columns:1fr}.rail{flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--line)}.rail .lab{display:none}.grid2,.grid2.wide{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
+.mapcard{background:var(--paper);color:#22272e;border:1px solid var(--line);border-radius:8px;padding:10px;position:relative}
+.mapcard canvas{display:block;width:100%;height:auto;background:#fff;border:1px solid #cfcfca}
+.mapcard .title{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px;font-weight:700;font-size:15px}
+.legend{margin-top:8px;color:#22272e}
+.legend .bands{display:flex;align-items:stretch;height:16px;border:1px solid #bbb;margin:0 34px}
+.legend .band{flex:1;position:relative}
+.legend .band.off{background-image:repeating-linear-gradient(45deg,#fff 0 3px,#ccc 3px 4px)!important}
+.legend .ends{display:flex;justify-content:space-between;font-size:11px;font-weight:700}
+.legend .ends .fewer{color:#3b8ea5}.legend .ends .more{color:var(--accent)}
+.legend .ticks{display:flex;margin:0 34px;font-size:11px;font-variant-numeric:tabular-nums;position:relative;height:14px}
+.legend .ticks span{position:absolute;transform:translateX(-50%)}
+.legend .toggles{display:flex;margin:2px 34px 0}
+.legend .toggles label{flex:1;text-align:center;font-size:10px;color:#666}
+.legend .hist{display:flex;align-items:flex-end;height:22px;margin:0 34px;gap:1px}
+.legend .hist div{flex:1;background:#d7d7d2}
+.legend .unit{font-size:11px;color:#555;margin-top:2px;text-align:center}
+.readout{font-variant-numeric:tabular-nums;font-size:13px}
+.readout table{border-collapse:collapse;width:100%}
+.readout td,.readout th{padding:2px 6px;text-align:right;border-bottom:1px solid var(--line)}
+.readout td:first-child,.readout th:first-child{text-align:left}
+.dots{display:inline-flex;gap:3px;align-items:center}
+.dots i{width:9px;height:9px;border-radius:50%;display:inline-block;border:1px solid #444}
+.big{font-size:30px;line-height:1.05;font-variant-numeric:tabular-nums}
+.big small{font-size:14px;font-family:Calibri,system-ui,sans-serif;color:var(--muted);display:block;margin-top:2px}
+.caption{font-size:13px;line-height:1.45;margin-top:10px}
+.caveat{font-size:12px;color:var(--muted);border-top:1px dashed var(--line);margin-top:8px;padding-top:6px}
+.state{font-size:12px;color:var(--muted);margin-top:8px;font-variant-numeric:tabular-nums}
+.editor{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 14px;margin-top:8px;padding:10px;border:1px dashed var(--line);border-radius:8px;background:var(--soft);font-size:12px}
+.editor label{display:flex;flex-direction:column;gap:2px}
+.editor input[type=text]{padding:3px 6px;border:1px solid var(--line);border-radius:4px;background:var(--panel)}
+.editor .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+input[type=range]{width:100%}
+.filters{display:flex;flex-direction:column;gap:10px;font-size:13px}
+.filters .f{display:grid;grid-template-columns:110px 1fr 70px;gap:8px;align-items:center}
+.filters .f .val{font-variant-numeric:tabular-nums;text-align:right;font-size:12px}
+.months{display:flex;gap:3px;flex-wrap:wrap}
+.months .chip{padding:1px 7px;font-size:12px}
+.tri{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.tri button{border:0;background:var(--chip);padding:2px 8px;cursor:pointer;font-size:12px}
+.tri button.on{background:var(--ink);color:var(--bg)}
+.ledger{font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted);margin-top:6px}
+.small{font-size:12px;color:var(--muted)}
+.multi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:700px){.multi{grid-template-columns:1fr}}
+.multi .mapcard{padding:6px}
+.multi .mapcard .title{font-size:13px}
+.bars{display:flex;align-items:flex-end;gap:2px;height:110px;border-bottom:1px solid var(--line);padding:0 2px}
+.bars div{flex:1;position:relative;min-width:2px}
+.bars div b{position:absolute;bottom:0;left:0;right:0;border-radius:2px 2px 0 0}
+.bars div i{position:absolute;bottom:0;left:15%;right:15%;border-radius:2px 2px 0 0;opacity:.85}
+.axis{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+table.data{border-collapse:collapse;width:100%;font-size:12px;font-variant-numeric:tabular-nums}
+table.data th,table.data td{padding:3px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+table.data th:first-child,table.data td:first-child{text-align:left}
+table.data th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.tablewrap{overflow-x:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--panel);border-left:1px solid var(--line);box-shadow:-8px 0 24px rgba(0,0,0,.12);padding:14px 16px calc(16px + env(safe-area-inset-bottom,0px));overflow:auto;z-index:20;transform:translateX(102%);transition:transform .2s}
+.drawer.open{transform:none}
+@media (prefers-reduced-motion:reduce){.drawer{transition:none}}
+.drawer h2{display:flex;justify-content:space-between;align-items:center}
+.drawer section{margin-top:12px}
+.drawer .lab{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.story{display:grid;gap:8px;margin-top:8px}
+.story button{text-align:left;padding:8px 10px;border:1px solid var(--line);background:var(--chip);border-radius:8px;cursor:pointer}
+.story button b{display:block;font-family:inherit}
+.concept{border:2px dashed #e6c26a;background:#fff9e8;color:#4d3b00;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13px}
+:root[data-theme="dark"] .concept,.concept{color:#4d3b00}
+.def{font-size:13px;background:var(--soft);border-radius:6px;padding:8px 10px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:13px}
+.kv b{font-weight:600}
+.status{font-size:12px;color:var(--muted)}
+.stipnote{font-size:11px;color:#555}
+dl.defs{margin:0}dl.defs dt{font-weight:600;margin-top:6px}dl.defs dd{margin:0 0 0 0;color:var(--muted)}
+.hzlab{font-weight:700}
+.hzlab.heat_drought_fire{color:var(--heat)}.hzlab.flood{color:var(--flood)}.hzlab.windstorm{color:var(--wind)}
+.notice{font-size:12px;color:var(--warn)}
+.zoomhint{font-size:11px;color:#666;margin-top:3px}
+.mapwrap{position:relative}
+.zoomctl{position:absolute;top:8px;left:8px;display:flex;flex-direction:column;gap:3px;z-index:2}
+.zoomctl button{width:28px;height:28px;border:1px solid #999;background:rgba(255,255,255,.92);color:#22272e;border-radius:5px;font-size:17px;line-height:1;cursor:pointer;padding:0}
+.zoomctl button:hover{border-color:#22272e}
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:8px 0 12px}
+.levels div{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;background:var(--panel)}
+.levels div b{display:block;font-size:14px}
+.levels div.live{border-color:var(--ok)}
+.levels div.build{border-style:dashed}
+.qbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.qbar input[type=text]{flex:1;min-width:220px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--chip);font-family:Menlo,Consolas,monospace;font-size:12px}
+table.data th.sortable{cursor:pointer}table.data th.sorted{color:var(--ink)}
+table.data tr.row{cursor:pointer}table.data tr.row:hover td{background:var(--soft)}
+.detail{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:4px 12px;font-size:13px;font-variant-numeric:tabular-nums}
+.detail b{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+</style>
+
+<header class="top">
+  <div><h1>Compound Europe</h1><div class="sub">Compound climate hazard changes across Europe · Sano, Ferrario, Torresan, Critto · ISIMIP3b, five GCMs, 0.5°, 1981–2100</div></div>
+  <span class="pill mock">MOCKUP · concept build on real data · not for circulation</span>
+  <div class="spacer"></div>
+  <span class="pill" id="modePill"><label><input type="checkbox" id="modeBrief"> Brief mode</label></span>
+  <button class="btn" id="copyLink">Copy link to this view</button>
+  <span class="pill" id="status">loading…</span>
+</header>
+
+<div class="shell" id="shell">
+  <nav class="rail" id="rail" aria-label="Views"></nav>
+  <main>
+    <div class="controls" id="controls"></div>
+    <section id="view"></section>
+  </main>
+</div>
+<aside class="drawer" id="drawer" aria-label="Place card"></aside>
+
+<script>
+/* ============ constants ============ */
+const GCMS=["mpi","gfdl","ipsl","mri","ukesm"];
+const GCM_NAME={mpi:"MPI-ESM1-2-HR",gfdl:"GFDL-ESM4",ipsl:"IPSL-CM6A-LR",mri:"MRI-ESM2-0",ukesm:"UKESM1-0-LL"};
+const WINDOWS=["hist","ssp126_mid","ssp126_late","ssp370_mid","ssp370_late","ssp585_mid","ssp585_late"];
+const SCEN={hist:"1981–2010 (historical)",ssp126:"SSP1-2.6",ssp370:"SSP3-7.0",ssp585:"SSP5-8.5"};
+const SCEN_PLAIN={ssp126:"low emissions",ssp370:"high emissions",ssp585:"very high emissions",hist:"the historical baseline"};
+const HOR={mid:"2031–2060",late:"2071–2100"};
+const TEALS=["#0f4a5c","#1f6f85","#3b8ea5","#7fb8c8","#c4dfe6"];
+const HZ={
+ heat_drought_fire:{label:"Compound heat-drought",plain:"heat-and-drought",col:"#ad1f2d",ramp:["#fde0d9","#f9b4a8","#ef7f74","#d9484a","#ad1f2d","#6e0f1c"],over:"#3d0810",abs:[0,7,30,60,90,120],diff:[-20,0,10,30,60,90,120],cnt:[0,0.3,0.6,1,1.5,2.5],primary:"tasmax",cond:["hurs_low","soilmoist_dry","pr_deficit"],lag:14,flags:[["hum","low humidity"],["soil","dry soil"],["pdef","rainfall deficit"]]},
+ flood:{label:"Compound flood",plain:"flood",col:"#2171b5",ramp:["#deebf7","#b5cfe6","#84b1d5","#4f8fc3","#2171b5","#0b4a8a"],over:"#062f5c",abs:[0,1,2,3,4,5],diff:[-2,0,1,2,3,4,5],cnt:[0,0.5,1,1.5,2,3],primary:"pr",cond:["qtot","soilmoist_wet"],lag:7,flags:[]},
+ windstorm:{label:"Compound windstorm",plain:"windstorm",col:"#5e3c99",ramp:["#e9e4f2","#cbbfe0","#a993cc","#8a6db8","#5e3c99","#3b2266"],over:"#241540",abs:[0,5,10,20,30,45],diff:[-20,-15,-10,-5,0,2,6],cnt:[0,0.5,1,2,3,4],primary:"ps",cond:["sfcwind"],lag:2,flags:[]}
+};
+const VARS={
+ tasmax:{name:"Daily maximum temperature",unit:"K",disp:v=>(v-273.15).toFixed(1)+" °C",type:"high",pct:0.95,floor:308.15,floorOn:true,floorTxt:"35.0 °C",eps:1.0,tim:3.0,ms:20,gap:5,fam:"heat_drought_fire"},
+ hurs_low:{name:"Relative humidity (low)",unit:"%",disp:v=>v.toFixed(0)+" %",type:"low",pct:0.05,floor:30,floorOn:false,eps:1.0,tim:3.0,ms:20,gap:6,fam:"heat_drought_fire"},
+ soilmoist_dry:{name:"Soil moisture (dry)",unit:"kg m⁻²",disp:v=>v.toFixed(1)+" kg m⁻²",type:"low",pct:0.05,floor:null,floorOn:false,eps:1.0,tim:7.0,ms:25,gap:14,fam:"heat_drought_fire"},
+ pr_deficit:{name:"Precipitation deficit (30-day)",unit:"mm/day",disp:v=>(v*86400).toFixed(2)+" mm/day",type:"low",pct:0.10,floor:null,floorOn:false,eps:0.75,tim:5.25,ms:35,gap:14,fam:"heat_drought_fire",roll:30},
+ pr:{name:"Precipitation",unit:"mm/day",disp:v=>(v*86400).toFixed(1)+" mm/day",type:"high",pct:0.99,floor:0.00023148,floorOn:true,floorTxt:"20 mm/day",eps:1.5,tim:1.0,ms:15,gap:2,fam:"flood"},
+ qtot:{name:"Total runoff",unit:"mm/day",disp:v=>(v*86400).toFixed(1)+" mm/day",type:"high",pct:0.99,floor:0.00023148,floorOn:true,floorTxt:"20 mm/day",eps:1.5,tim:2.0,ms:15,gap:4,fam:"flood"},
+ soilmoist_wet:{name:"Soil moisture (wet)",unit:"kg m⁻²",disp:v=>v.toFixed(1)+" kg m⁻²",type:"high",pct:0.80,floor:null,floorOn:false,eps:1.0,tim:3.0,ms:20,gap:10,fam:"flood"},
+ ps:{name:"Surface pressure (deep low)",unit:"hPa",disp:v=>(v/100).toFixed(1)+" hPa",type:"low",pct:0.05,floor:99000,floorOn:false,eps:1.5,tim:1.0,ms:20,gap:2,fam:"windstorm"},
+ sfcwind:{name:"Near-surface wind speed",unit:"m/s",disp:v=>v.toFixed(1)+" m/s",type:"high",pct:0.99,floor:17.2,floorOn:true,floorTxt:"17.2 m/s (gale)",eps:2.83,tim:1.89,ms:5,gap:2,fam:"windstorm"},
+ hurs_high:{name:"Relative humidity (high)",unit:"%",disp:v=>v.toFixed(0)+" %",type:"high",pct:0.95,floor:95,floorOn:false,eps:1.5,tim:1.0,ms:15,gap:2,fam:"flood"}
+};
+const VIEWS=[
+ {n:0,k:"head",t:"Headline"},{n:1,k:"work",t:"Compound workbench"},{n:2,k:"events",t:"Event explorer"},{n:3,k:"single",t:"Single hazards"},
+ {n:4,k:"clusters",t:"Clusters",concept:true},{n:5,k:"compare",t:"Compare models"},{n:6,k:"season",t:"Season & shift"},{n:7,k:"analog",t:"Disaster analogues",concept:true},
+ {n:8,k:"place",t:"Place card"},{n:9,k:"method",t:"Method & trust"},{n:10,k:"data",t:"Data explorer"}
+];
+const CLUSTER_ROWS={hurs_high:[143262,170023,141888,151179,120246],hurs_low:[59432,61512,61858,63640,60087],pr:[59622,73395,76347,62898,68988],pr_deficit:[16766,14389,19479,14082,16678],ps:[21255,21094,19427,19773,18499],qtot:[7113,8287,7307,7721,7262],sfcwind:[9952,11781,10284,10712,9415],soilmoist_dry:[6817,6405,6341,5828,5958],soilmoist_wet:[17073,17584,18371,16879,17219],tasmax:[8505,7973,7810,8228,8957]};
+
+/* ============ state ============ */
+const S={view:0,brief:false,h:"heat_drought_fire",model:"ens.mean",scen:"ssp585",hor:"late",cmp:"diff",metric:"days",units:"days",agreeN:4,stipple:true,
+ scale:{breaks:null,on:null,mode:"step",clipHigh:false,lock:true,custom:false},
+ svar:"tasmax",smetric:"days",
+ f:{durMin:1,durMax:200,radMin:0,radMax:2500,months:[1,1,1,1,1,1,1,1,1,1,1,1],ncMin:1,tri:{hum:0,soil:0,pdef:0},gcms:{mpi:1,gfdl:1,ipsl:1,mri:1,ukesm:1},as:"days"},
+ sel:null};
+let hashReceived=false;
+function wkey(){return S.scen==="hist"?"hist":`${S.scen}_${S.hor}`}
+function saveHash(){try{const o={view:S.view,brief:S.brief,h:S.h,model:S.model,scen:S.scen,hor:S.hor,cmp:S.cmp,metric:S.metric,units:S.units,agreeN:S.agreeN,scale:S.scale,svar:S.svar,smetric:S.smetric,f:S.f};history.replaceState(null,"","#v1&"+encodeURIComponent(JSON.stringify(o)))}catch(e){}}
+function loadHash(){try{const h=location.hash;if(h.startsWith("#v1&")){const o=JSON.parse(decodeURIComponent(h.slice(4)));Object.assign(S,o);hashReceived=true}}catch(e){}}
+
+/* ============ data ============ */
+const D={};
+const LOAD={};
+function setStatus(t,cls){const el=document.getElementById("status");el.textContent=t;el.className="pill "+(cls||"")}
+async function load(name,url){if(D[name])return D[name];if(!LOAD[name]){setStatus("loading "+name+"…");LOAD[name]=fetch(url).then(r=>{if(!r.ok)throw new Error(r.status+" "+url);return r.json()}).then(j=>{D[name]=j;setStatus("data loaded from sibling files ✓","ok");return j}).catch(e=>{setStatus("fetch of "+url+" failed: "+e.message,"warn");throw e})}return LOAD[name]}
+const loadMeta=()=>load("meta","data/grid_meta.json"), loadOcc=()=>load("occ","data/occupancy_land.json"), loadSH=()=>load("sh","data/single_hazard_mpi_full.json");
+const loadGeo=async()=>{if(D.geo)return D.geo;const [c,b]=await Promise.all([fetch("data/ne110_coast.geojson").then(r=>r.json()),fetch("data/ne110_borders.geojson").then(r=>r.json())]);D.geo={coast:c,borders:b};return D.geo};
+const loadCat=h=>load("cat_"+h,`data/catalogue_${h}.json`);
+
+/* ============ grid ============ */
+const G={lat0:35.25,lon0:-14.75,nlat:70,nlon:110,step:0.5};
+let LAND=null; // {lat,lon arrays for land cells; gridIdx Int32Array 7700 -> land idx or -1; rows}
+function buildGrid(meta){const n=meta.lat.length;const gridIdx=new Int32Array(G.nlat*G.nlon).fill(-1);const rows=Array.from({length:G.nlat},()=>[]);
+ for(let i=0;i<n;i++){const r=Math.round((meta.lat[i]-G.lat0)/G.step),c=Math.round((meta.lon[i]-G.lon0)/G.step);gridIdx[r*G.nlon+c]=i;rows[r].push([meta.lon[i],i])}
+ rows.forEach(a=>a.sort((x,y)=>x[0]-y[0]));LAND={n,lat:meta.lat,lon:meta.lon,gridIdx,rows}}
+
+/* ============ scale engine ============ */
+function bandColours(breaks,h,kind){const n=breaks.length-1,ramp=HZ[h].ramp,out=[];let nNeg=0;for(let i=0;i<n;i++)if(kind==="div"&&breaks[i+1]<=0)nNeg++;const nPos=n-nNeg;
+ for(let i=0;i<n;i++){if(i<nNeg){out.push(TEALS[Math.min(4,4-nNeg+i+1)])}else{const j=i-nNeg;out.push(nPos<=1?ramp[4]:ramp[Math.round(j*(ramp.length-1)/(nPos-1))])}}return out}
+function defaultBreaks(){const z=HZ[S.h];if(S.cmp==="ratio")return [0.5,0.8,1,1.25,2,4,10];if(S.metric==="count")return S.cmp==="diff"?[-1,0,0.2,0.5,1,1.5,2.5]:z.cnt;return S.cmp==="diff"?z.diff:z.abs}
+function scaleKind(){return (S.cmp==="diff"||S.cmp==="ratio")?"div":"seq"}
+function ensureScale(){if(!S.scale.breaks||S.scale.breaks.length<2){S.scale.breaks=defaultBreaks();S.scale.on=S.scale.breaks.slice(1).map(()=>true);S.scale.custom=false}}
+function resetScale(){S.scale.breaks=defaultBreaks();S.scale.on=S.scale.breaks.slice(1).map(()=>true);S.scale.custom=false;S.scale.clipHigh=false}
+function makeScale(h,breaks,on,kind,mode,clipHigh){const cols=bandColours(breaks,h,kind);const pivot=kind==="div"?(S.cmp==="ratio"?1:0):null;
+ return {breaks,cols,on,kind,mode,clipHigh,pivot,under:kind==="div"?TEALS[0]:HZ[h].ramp[0],over:HZ[h].over,
+  colour(v){if(v==null||Number.isNaN(v))return null;const b=breaks,n=b.length-1;if(v<b[0])return this.under;if(v>=b[n])return clipHigh?"hatch":this.over;
+   let i=0;while(i<n-1&&v>=b[i+1])i++;if(!on[i])return null;if(mode==="step")return cols[i];
+   const t=(v-b[i])/((b[i+1]-b[i])||1);const c0=cols[i],c1=cols[Math.min(n-1,i+1)];return mix(c0,c1,i===n-1?0:t)}}}
+function mix(a,b,t){const p=x=>[parseInt(x.slice(1,3),16),parseInt(x.slice(3,5),16),parseInt(x.slice(5,7),16)];const A=p(a),B=p(b);return "rgb("+A.map((v,i)=>Math.round(v+(B[i]-v)*t)).join(",")+")"}
+function autoBreaks(vals,n=6){const v=Array.from(vals).filter(x=>x!=null&&Number.isFinite(x)).sort((a,b)=>a-b);if(!v.length)return [0,1];const q=p=>v[Math.min(v.length-1,Math.floor(p*(v.length-1)))];const raw=[q(0),q(.2),q(.4),q(.6),q(.8),q(.95),q(1)];const nice=x=>{if(x===0)return 0;const m=Math.pow(10,Math.floor(Math.log10(Math.abs(x)))-1);return Math.round(x/m)*m};let out=[...new Set(raw.map(nice))].sort((a,b)=>a-b);if(out.length<2)out=[out[0],out[0]+1];return out}
+
+/* ============ units ============ */
+function unitLabel(){if(S.cmp==="ratio")return "× 1981–2010";if(S.metric==="count")return "events per year";return S.units==="days"?"days per year":S.units==="months"?"months per year":"% of the year"}
+function cv(v){if(v==null||Number.isNaN(v))return "–";if(S.cmp==="ratio"||S.metric==="count")return (+v).toFixed(2);if(S.units==="months")return (v/30.44).toFixed(1);if(S.units==="pct")return (v/365*100).toFixed(0);return (+v).toFixed(0)}
+function cvLabel(v){return cv(v)}
+
+/* ============ planes & stats ============ */
+function plane(h,g,wk,metric){const a=D.occ[metric==="count"?"count":"days"][`${h}|${g}|${wk}`];return a?Float32Array.from(a):null}
+function statOf(vals,model){const v=vals.filter(x=>x!=null&&Number.isFinite(x));if(!v.length)return NaN;if(model==="ens.mean")return v.reduce((a,b)=>a+b,0)/v.length;const s=[...v].sort((a,b)=>a-b);if(model==="ens.median")return s.length%2?s[(s.length-1)/2]:(s[s.length/2-1]+s[s.length/2])/2;if(model==="ens.min")return s[0];if(model==="ens.max")return s[s.length-1];if(model==="ens.spread")return s[s.length-1]-s[0];return NaN}
+/* returns {field Float32Array(n), agree Uint8Array(n) or null, perG: [5 arrays of the compared quantity]} */
+function field(h,model,wk,cmp,metric){const n=LAND.n;const fut=GCMS.map(g=>plane(h,g,wk,metric)),hist=GCMS.map(g=>plane(h,g,"hist",metric));
+ const perG=GCMS.map((g,i)=>{const F=fut[i],H=hist[i],o=new Float32Array(n);for(let c=0;c<n;c++){if(cmp==="abs")o[c]=F[c];else if(cmp==="diff")o[c]=F[c]-H[c];else if(cmp==="ratio")o[c]=H[c]>0?F[c]/H[c]:(F[c]>0?NaN:NaN);else o[c]=(H[c]===0&&F[c]>0)?F[c]:NaN}return o});
+ const diffs=GCMS.map((g,i)=>{const F=fut[i],H=hist[i],o=new Float32Array(n);for(let c=0;c<n;c++)o[c]=F[c]-H[c];return o});
+ const out=new Float32Array(n),agree=new Uint8Array(n);const isG=GCMS.includes(model);
+ for(let c=0;c<n;c++){if(isG)out[c]=perG[GCMS.indexOf(model)][c];else if(model==="agree")out[c]=NaN;else out[c]=statOf(perG.map(p=>p[c]),model);
+  const d=diffs.map(p=>p[c]);const med=statOf(d,"ens.median");if(med===0||Number.isNaN(med))agree[c]=255;else agree[c]=d.filter(x=>Math.sign(x)===Math.sign(med)).length;
+  if(model==="agree")out[c]=agree[c]===255?NaN:agree[c]}
+ if(cmp==="emerg"){for(let c=0;c<n;c++){const e=perG.filter(p=>!Number.isNaN(p[c])).length;if(!isG&&model!=="agree"){out[c]=e>0?out[c]:NaN;agree[c]=e===0?255:e}}}
+ return {field:out,agree,perG,hist,fut}}
+function landMean(a){let s=0,k=0;for(const v of a)if(!Number.isNaN(v)){s+=v;k++}return k?s/k:NaN}
+
+/* ============ map ============ */
+const ASPECT=Math.cos(52.5*Math.PI/180)*55/35; // width/height in projected units
+class GridMap{
+ constructor(canvas,{full=false,onHover=null,onClick=null}={}){this.c=canvas;this.full=full;this.onHover=onHover;this.onClick=onClick;this.W=1100;this.H=Math.round(this.W/ASPECT);canvas.width=this.W;canvas.height=this.H;this.ctx=canvas.getContext("2d");this.k=1;this.tx=0;this.ty=0;this.drag=null;this.justDragged=false;this.last=null;
+  const wrap=document.createElement("div");wrap.className="mapwrap";canvas.parentNode.insertBefore(wrap,canvas);wrap.appendChild(canvas);
+  wrap.insertAdjacentHTML("beforeend",'<div class="zoomctl"><button type="button" data-z="in" title="zoom in">+</button><button type="button" data-z="out" title="zoom out">−</button><button type="button" data-z="reset" title="reset view">⟲</button></div>');
+  wrap.insertAdjacentHTML("afterend",'<div class="zoomhint">scroll or pinch to zoom · drag to pan · + − ⟲ buttons · cells are 0.5°, zoom adds no detail</div>');
+  wrap.querySelectorAll(".zoomctl button").forEach(b=>b.addEventListener("click",e=>{e.stopPropagation();const z=b.dataset.z;if(z==="reset"){this.k=1;this.tx=0;this.ty=0}else this._zoomAt(this.W/2,this.H/2,z==="in"?1.6:1/1.6);this.redraw()}));
+  canvas.style.touchAction="none";this.ptrs=new Map();this.pinch=null;
+  canvas.addEventListener("wheel",e=>{e.preventDefault();const [sx,sy]=this._screen(e);this._zoomAt(sx,sy,Math.exp(-e.deltaY*0.0015));this.redraw()},{passive:false});
+  canvas.addEventListener("pointerdown",e=>{canvas.setPointerCapture(e.pointerId);this.ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(this.ptrs.size===1)this.drag={x:e.clientX,y:e.clientY,tx:this.tx,ty:this.ty,moved:false};else if(this.ptrs.size===2){const [a,b]=[...this.ptrs.values()];this.pinch={d:Math.hypot(a.x-b.x,a.y-b.y),k:this.k};this.drag=null}});
+  canvas.addEventListener("pointermove",e=>{if(this.ptrs.has(e.pointerId))this.ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+   if(this.pinch&&this.ptrs.size===2){const [a,b]=[...this.ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);const r=canvas.getBoundingClientRect();const mx=((a.x+b.x)/2-r.left)/r.width*this.W,my=((a.y+b.y)/2-r.top)/r.height*this.H;const target=Math.min(14,Math.max(1,this.pinch.k*d/this.pinch.d));this._zoomAt(mx,my,target/this.k);this.redraw();return}
+   if(this.drag){const r=canvas.getBoundingClientRect();const dx=(e.clientX-this.drag.x)/r.width*this.W,dy=(e.clientY-this.drag.y)/r.height*this.H;if(Math.abs(dx)+Math.abs(dy)>4)this.drag.moved=true;if(this.drag.moved){this.tx=this.drag.tx+dx;this.ty=this.drag.ty+dy;this._clamp();this.redraw();return}}
+   if(e.pointerType==="mouse")this._pt(e,false)});
+  const up=e=>{this.ptrs.delete(e.pointerId);if(this.ptrs.size<2)this.pinch=null;if(this.drag){this.justDragged=this.drag.moved;this.drag=null}};canvas.addEventListener("pointerup",up);canvas.addEventListener("pointercancel",up);
+  canvas.addEventListener("dblclick",()=>{this.k=1;this.tx=0;this.ty=0;this.redraw()});
+  canvas.addEventListener("click",e=>{if(this.justDragged){this.justDragged=false;return}this._pt(e,true)});canvas.addEventListener("pointerleave",()=>this.onHover&&this.onHover(null))}
+ _zoomAt(sx,sy,f){const k2=Math.min(14,Math.max(1,this.k*f));const wx=(sx-this.tx)/this.k,wy=(sy-this.ty)/this.k;this.k=k2;this.tx=sx-wx*k2;this.ty=sy-wy*k2;this._clamp()}
+ _screen(e){const r=this.c.getBoundingClientRect();return [(e.clientX-r.left)/r.width*this.W,(e.clientY-r.top)/r.height*this.H]}
+ _clamp(){this.tx=Math.min(0,Math.max(this.W-this.W*this.k,this.tx));this.ty=Math.min(0,Math.max(this.H-this.H*this.k,this.ty))}
+ redraw(){if(this.last)this.draw(this.last.values,this.last.scale,this.last.opts)}
+ px(lon,lat){return [(lon+15)/55*this.W,(70-lat)/35*this.H]}
+ _pt(e,click){const [sx,sy]=this._screen(e);const x=(sx-this.tx)/this.k,y=(sy-this.ty)/this.k;const lon=x/this.W*55-15,lat=70-y/this.H*35;const row=Math.floor((lat-35)/0.5),col=Math.floor((lon+15)/0.5);if(row<0||row>=70||col<0||col>=110)return;const gi=row*110+col;const li=LAND.gridIdx[gi];const info={row,col,gi,li,lat:35.25+row*0.5,lon:-14.75+col*0.5};if(click){this.onClick&&this.onClick(info)}else{this.onHover&&this.onHover(info)}}
+ draw(values,scale,opts={}){const {agree=null,agreeN=4,stipple=true}=opts;this.last={values,scale,opts};const ctx=this.ctx,W=this.W,H=this.H;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,W,H);ctx.fillStyle="#ffffff";ctx.fillRect(0,0,W,H);ctx.setTransform(this.k,0,0,this.k,this.tx,this.ty);
+  const cw=W/110,ch=H/70;
+  // base land
+  ctx.fillStyle="#e9e9e9";for(let gi=0;gi<7700;gi++){const li=LAND.gridIdx[gi];if(li<0)continue;const row=Math.floor(gi/110),col=gi%110;ctx.fillRect(col*cw,(69-row)*ch,cw+0.5,ch+0.5)}
+  const hatch=[];
+  const N=this.full?7700:LAND.n;
+  for(let k=0;k<N;k++){const gi=this.full?k:null;let row,col,v;if(this.full){row=Math.floor(k/110);col=k%110;v=values[k]}else{const idx=LAND.lat[k];row=Math.round((LAND.lat[k]-35.25)/0.5);col=Math.round((LAND.lon[k]+14.75)/0.5);v=values[k]}
+   if(v==null||Number.isNaN(v))continue;if(Math.abs(v)<1e-9&&scale.kind==="div")continue;const col_=scale.colour(v);if(!col_)continue;const x=col*cw,y=(69-row)*ch;if(col_==="hatch"){ctx.fillStyle=scale.over;ctx.fillRect(x,y,cw+0.5,ch+0.5);hatch.push([x,y]);continue}ctx.fillStyle=col_;ctx.fillRect(x,y,cw+0.5,ch+0.5)}
+  if(hatch.length){ctx.strokeStyle="#ffffff";ctx.lineWidth=1/this.k;ctx.beginPath();for(const [x,y] of hatch){ctx.moveTo(x,y+ch);ctx.lineTo(x+cw,y);ctx.moveTo(x,y+ch/2);ctx.lineTo(x+cw/2,y)}ctx.stroke()}
+  if(agree&&stipple&&!this.full){ctx.fillStyle="rgba(30,30,30,.55)";for(let k=0;k<LAND.n;k++){const a=agree[k];if(a===255||a>=agreeN)continue;const v=values[k];if(v==null||Number.isNaN(v)||Math.abs(v)<1e-9)continue;const row=Math.round((LAND.lat[k]-35.25)/0.5),col=Math.round((LAND.lon[k]+14.75)/0.5);ctx.beginPath();ctx.arc(col*cw+cw/2,(69-row)*ch+ch/2,1.4/Math.sqrt(this.k),0,6.28);ctx.fill()}}
+  this.lines();ctx.setTransform(1,0,0,1,0,0);
+  ctx.fillStyle="#666";ctx.font="13px Calibri, sans-serif";const sp=(lon,lat)=>{const [x,y]=this.px(lon,lat);return [x*this.k+this.tx,y*this.k+this.ty]};for(let la=40;la<=65;la+=5){const [x,y]=sp(-14.8,la);if(y>0&&y<H)ctx.fillText(la+"°N",Math.max(3,x+3),y-2)}for(let lo=-10;lo<=30;lo+=10){const [x,y]=sp(lo,35.2);if(x>0&&x<W)ctx.fillText((lo<0?-lo+"°W":lo+"°E"),x+2,Math.min(H-3,y-3))}
+  if(this.k>1.01){ctx.fillStyle="rgba(34,39,46,.75)";ctx.fillRect(W-66,6,60,20);ctx.fillStyle="#fff";ctx.font="12px Calibri, sans-serif";ctx.fillText("× "+this.k.toFixed(1),W-58,20)}}
+ lines(){const ctx=this.ctx;if(!D.geo)return;ctx.lineWidth=1.1/this.k;ctx.strokeStyle="#555";const draw=g=>{for(const f of g.features){const t=f.geometry.type,cs=f.geometry.coordinates;const rings=t==="LineString"?[cs]:t==="MultiLineString"?cs:t==="Polygon"?cs:t==="MultiPolygon"?cs.flat():[];for(const r of rings){ctx.beginPath();r.forEach((p,i)=>{const [x,y]=this.px(p[0],p[1]);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke()}}};draw(D.geo.coast);ctx.strokeStyle="#777";ctx.lineWidth=0.8/this.k;draw(D.geo.borders)}
+ highlight(info){if(!info)return;const cw=this.W/110,ch=this.H/70;const ctx=this.ctx;ctx.setTransform(this.k,0,0,this.k,this.tx,this.ty);ctx.strokeStyle="#000";ctx.lineWidth=2/this.k;ctx.strokeRect(info.col*cw,(69-info.row)*ch,cw,ch);ctx.setTransform(1,0,0,1,0,0)}
+}
+
+/* ============ legend ============ */
+function legendHTML(scale,values,{unit=unitLabel(),ends=true}={}){const b=scale.breaks,n=b.length-1;const counts=new Array(n).fill(0);let under=0,over=0;for(const v of values){if(v==null||Number.isNaN(v))continue;if(v<b[0]){under++;continue}if(v>=b[n]){over++;continue}let i=0;while(i<n-1&&v>=b[i+1])i++;counts[i]++}
+ const mx=Math.max(1,...counts,under,over);
+ const fmt=x=>S.view===3?fmtS(x):cvLabel(x);
+ return `<div class="legend"><div class="hist">${counts.map(c=>`<div style="height:${Math.round(c/mx*100)}%" title="${c} cells"></div>`).join("")}</div>
+ <div class="ends"><span class="fewer">${ends&&scale.kind==="div"?"fewer ◀":"◀ "+(under?under+" below":"")}</span><span class="more" style="color:${HZ[S.h].col}">${ends?(over?over+" cells above ▶":"more ▶"):""}</span></div>
+ <div class="bands">${scale.cols.map((c,i)=>`<div class="band ${scale.on[i]?"":"off"}" style="background:${scale.mode==="step"?c:`linear-gradient(90deg,${scale.cols[Math.max(0,i-1)]},${c})`}"></div>`).join("")}</div>
+ <div class="ticks">${b.map((x,i)=>`<span style="left:${i/n*100}%">${fmt(x)}</span>`).join("")}</div>
+ <div class="toggles">${scale.on.map((o,i)=>`<label title="band on/off"><input type="checkbox" data-band="${i}" ${o?"checked":""}></label>`).join("")}</div>
+ <div class="unit">${unit}${S.units==="months"&&S.view!==3?" (days ÷ 30.44)":""}${scale.mode==="cont"?" · continuous":" · stepped bands"}${scale.clipHigh?" · values above the top edge hatched":""}${S.scale.custom?" · <b>custom colour scale</b>":""}</div></div>`}
+function bindLegend(root,onChange){root.querySelectorAll("input[data-band]").forEach(cb=>cb.addEventListener("change",()=>{S.scale.on[+cb.dataset.band]=cb.checked;S.scale.custom=true;onChange()}))}
+function editorHTML(){const b=S.scale.breaks;return `<div class="editor" id="editor">
+ <label>Band edges (${S.cmp==="ratio"?"ratio":S.metric==="count"?"events/yr":"days/yr"}, comma-separated, increasing)<input type="text" id="edBreaks" value="${b.join(", ")}"></label>
+ <label>Rule<select id="edRule"><option value="paper">paper default</option><option value="policy">policy (0 / 7 / 30 / 60 / 90 / 120 days)</option><option value="auto">quantiles of visible cells</option><option value="equal">equal interval (6)</option></select></label>
+ <label>Mode<div class="row"><label><input type="radio" name="edMode" value="step" ${S.scale.mode==="step"?"checked":""}> stepped</label><label><input type="radio" name="edMode" value="cont" ${S.scale.mode==="cont"?"checked":""}> continuous</label></div></label>
+ <label>Top edge<div class="row"><label><input type="checkbox" id="edClip" ${S.scale.clipHigh?"checked":""}> hatch cells above it (instead of the darkest colour)</label></div></label>
+ <label>Scale lock<div class="row"><label><input type="checkbox" id="edLock" ${S.scale.lock?"checked":""}> keep this scale when scenario, horizon or model change</label></div></label>
+ <div class="row"><button class="btn" id="edApply">Apply</button><button class="btn" id="edReset">Reset to paper default</button><span class="small">Every departure from the default stamps “custom colour scale” on the legend and in the caption.</span></div></div>`}
+function bindEditor(root,values,onChange){const q=s=>root.querySelector(s);q("#edApply").onclick=()=>{const arr=q("#edBreaks").value.split(/[,\s]+/).filter(Boolean).map(Number);if(arr.some(isNaN)||arr.length<2||arr.some((x,i)=>i&&x<=arr[i-1])){alert("Edges must be increasing numbers.");return}S.scale.breaks=arr;S.scale.on=arr.slice(1).map((_,i)=>S.scale.on[i]??true);S.scale.custom=true;S.scale.mode=root.querySelector("input[name=edMode]:checked").value;S.scale.clipHigh=q("#edClip").checked;S.scale.lock=q("#edLock").checked;onChange()};
+ q("#edReset").onclick=()=>{resetScale();onChange()};
+ q("#edRule").onchange=e=>{const r=e.target.value;if(r==="policy")S.scale.breaks=[0,7,30,60,90,120];else if(r==="auto")S.scale.breaks=autoBreaks(values);else if(r==="equal"){const v=Array.from(values).filter(x=>x!=null&&Number.isFinite(x));const lo=Math.min(...v),hi=Math.max(...v);S.scale.breaks=Array.from({length:7},(_,i)=>+(lo+(hi-lo)*i/6).toPrecision(2))}else S.scale.breaks=defaultBreaks();S.scale.on=S.scale.breaks.slice(1).map(()=>true);S.scale.custom=r!=="paper";onChange()}}
+
+/* ============ captions ============ */
+function agreeClause(n){if(n>=5)return "all five models agree";if(n===4)return "four of the five models agree, one disagrees";if(n===3)return "the models are split; treat this as uncertain";return "the models do not agree on the direction here"}
+function modelLabel(){return GCMS.includes(S.model)?GCM_NAME[S.model]+" (single model)":{"ens.mean":"ensemble mean of five GCMs","ens.median":"ensemble median of five GCMs","ens.min":"ensemble minimum","ens.max":"ensemble maximum","ens.spread":"across-model spread (max − min)","agree":"number of models agreeing on the sign of change"}[S.model]}
+function cmpLabel(){return {abs:"",diff:" minus 1981–2010",ratio:" as a ratio to 1981–2010",emerg:", cells with no event in 1981–2010 that gain events"}[S.cmp]}
+function stateSentence(F){const z=HZ[S.h];const v=Array.from(F.field).filter(x=>!Number.isNaN(x)).sort((a,b)=>a-b);const q=p=>v.length?v[Math.floor(p*(v.length-1))]:NaN;
+ const win=S.scen==="hist"?"1981–2010":`${SCEN[S.scen]} ${HOR[S.hor]}`;
+ return `${z.label}, ${modelLabel()}, ${win}${cmpLabel()}, ${S.metric==="count"?"events per year":"days per year under an event"} (${unitLabel()}). Land cells ${v.length}: min ${cv(q(0))} · p5 ${cv(q(.05))} · median ${cv(q(.5))} · p95 ${cv(q(.95))} · max ${cv(q(1))}. Footprints are equal-area disks; event-days are summed with multiplicity where events overlap.${S.scale.custom?" (custom colour scale)":""}`}
+
+/* ============ rasteriser (port of the Python disk maths) ============ */
+function rasterise(cat,gcms,wk,sel){const n=LAND.n,days=new Float32Array(n),cnt=new Float32Array(n);const wi=WINDOWS.indexOf(wk);let used=0;const per={};
+ for(const g of gcms){const c=cat[g];if(!c)continue;let k=0;for(let i=0;i<c.w.length;i++){if(c.w[i]!==wi)continue;if(sel&&!sel(c,i))continue;k++;const r=Math.sqrt(c.km2[i]/Math.PI),lat=c.lat[i],lon=c.lon[i],dur=c.dur[i];const dlat=r/111;const r0=Math.max(0,Math.ceil((lat-dlat-35.25)/0.5)),r1=Math.min(69,Math.floor((lat+dlat-35.25)/0.5));
+  for(let row=r0;row<=r1;row++){const latc=35.25+row*0.5;const dy=(latc-lat)*111;if(Math.abs(dy)>r)continue;const kmlon=111*Math.cos(latc*Math.PI/180);const dx=Math.sqrt(r*r-dy*dy)/kmlon;for(const [lonc,li] of LAND.rows[row]){if(lonc<lon-dx)continue;if(lonc>lon+dx)break;days[li]+=dur;cnt[li]+=1}}}per[g]=k;used+=k}
+ const m=gcms.length||1;for(let i=0;i<n;i++){days[i]/=30*m;cnt[i]/=30*m}return {days,cnt,used,per}}
+function catTotals(cat,gcms,wk){const wi=WINDOWS.indexOf(wk);const per={};let t=0;for(const g of gcms){let k=0;const c=cat[g];for(let i=0;i<c.w.length;i++)if(c.w[i]===wi)k++;per[g]=k;t+=k}return {t,per}}
+function filterFn(){const f=S.f,z=HZ[S.h];return (c,i)=>{const dur=c.dur[i];if(dur<f.durMin||dur>f.durMax)return false;const r=Math.sqrt(c.km2[i]/Math.PI);if(r<f.radMin||r>f.radMax)return false;const m=Math.min(11,Math.floor((c.doy[i]-1)/30.44));if(!f.months[m])return false;if(c.ncond[i]<f.ncMin)return false;
+ for(const [k] of z.flags){const t=f.tri[k];if(t===0)continue;const has=c[k]&&c[k][i]===1;if(t===1&&!has)return false;if(t===-1&&has)return false}return true}}
+
+/* ============ UI: rail & controls ============ */
+function renderRail(){const r=document.getElementById("rail");r.innerHTML=`<div class="lab">Views · pipeline order</div>`+VIEWS.map(v=>`<button data-v="${v.n}" class="${S.view===v.n?"on":""} ${v.concept?"concept":""}" title="${v.concept?"concept panel in this mockup":""}"><span class="n">${v.n}</span><span>${v.t}${v.concept?" ✎":""}</span></button>`).join("");r.querySelectorAll("button").forEach(b=>b.onclick=()=>{S.view=+b.dataset.v;if(S.view===8){openPlace(S.sel||{lat:44.25,lon:11.75})}else render()})}
+function renderControls(){const c=document.getElementById("controls");const v=S.view;
+ const hz=`<div class="grp"><span class="lab">Hazard</span>${Object.keys(HZ).map(h=>`<button class="chip hz ${S.h===h?"on":""}" data-h="${h}">${HZ[h].label.replace("Compound ","")}</button>`).join("")}</div>`;
+ const sc=`<div class="grp"><span class="lab">Scenario</span>${["hist","ssp126","ssp370","ssp585"].map(s=>`<button class="chip sc ${S.scen===s?"on":""}" data-s="${s}">${s==="hist"?"1981–2010":SCEN[s]}</button>`).join("")}</div>`;
+ const hr=`<div class="grp"><span class="lab">Horizon</span>${["mid","late"].map(x=>`<button class="chip hr ${S.hor===x?"on":""} ${S.scen==="hist"?"dis":""}" data-x="${x}">${HOR[x]}</button>`).join("")}</div>`;
+ const model=`<div class="grp adv"><span class="lab">Model</span><select id="cModel">${[["ens.mean","Ensemble mean"],["ens.median","Ensemble median"],["ens.min","Ensemble min"],["ens.max","Ensemble max"],["ens.spread","Spread (max−min)"],["agree","Agreement count"],...GCMS.map(g=>[g,GCM_NAME[g]])].map(([k,l])=>`<option value="${k}" ${S.model===k?"selected":""}>${l}</option>`).join("")}</select></div>`;
+ const cmp=`<div class="grp"><span class="lab">Show</span><select id="cCmp">${[["abs","value"],["diff","change vs 1981–2010"],["ratio","ratio to 1981–2010"],["emerg","emergence (new where none)"]].map(([k,l])=>`<option value="${k}" ${S.cmp===k?"selected":""}>${l}</option>`).join("")}</select></div>`;
+ const met=`<div class="grp adv"><span class="lab">Metric</span><select id="cMet"><option value="days" ${S.metric==="days"?"selected":""}>days per year under an event</option><option value="count" ${S.metric==="count"?"selected":""}>events per year touching the cell</option></select></div>`;
+ const un=`<div class="grp"><span class="lab">Units</span><select id="cUnits"><option value="days" ${S.units==="days"?"selected":""}>days / year</option><option value="months" ${S.units==="months"?"selected":""}>months / year</option><option value="pct" ${S.units==="pct"?"selected":""}>% of the year</option></select></div>`;
+ const ag=`<div class="grp adv"><span class="lab">Agreement</span><label class="small"><input type="checkbox" id="cStip" ${S.stipple?"checked":""}> stipple where fewer than</label><select id="cAgN">${[3,4,5].map(n=>`<option ${S.agreeN===n?"selected":""}>${n}</option>`).join("")}</select><span class="small">of 5 agree on the sign of change</span></div>`;
+ let html="";
+ if(v===0)html=hz+sc+hr+cmp+un;else if(v===1||v===5)html=hz+sc+hr+model+cmp+met+un+ag;else if(v===2||v===6)html=hz+sc+hr+un;else if(v===3)html=sc+hr;else if(v===10)html=hz;else html="";
+ c.innerHTML=html;
+ c.querySelectorAll(".chip.hz").forEach(b=>b.onclick=()=>{S.h=b.dataset.h;resetScale();render()});
+ c.querySelectorAll(".chip.sc").forEach(b=>b.onclick=()=>{S.scen=b.dataset.s;if(S.scen==="hist"&&S.cmp!=="abs")S.cmp="abs";if(!S.scale.lock)resetScale();render()});
+ c.querySelectorAll(".chip.hr").forEach(b=>b.onclick=()=>{S.hor=b.dataset.x;if(S.scen==="hist")S.scen="ssp585";if(!S.scale.lock)resetScale();render()});
+ const on=(id,fn)=>{const el=c.querySelector(id);if(el)el.onchange=e=>{fn(e.target.value);render()}};
+ on("#cModel",x=>{S.model=x;if(!S.scale.lock)resetScale()});on("#cCmp",x=>{S.cmp=x;if(x!=="abs"&&S.scen==="hist")S.scen="ssp585";resetScale()});on("#cMet",x=>{S.metric=x;resetScale()});on("#cUnits",x=>S.units=x);on("#cAgN",x=>S.agreeN=+x);
+ const st=c.querySelector("#cStip");if(st)st.onchange=()=>{S.stipple=st.checked;render()}}
+
+/* ============ views ============ */
+const V=document.getElementById("view");
+async function render(){renderRail();renderControls();document.body.classList.toggle("brief",S.brief);document.documentElement.style.setProperty("--accent",HZ[S.h].col);saveHash();
+ await Promise.all([loadMeta(),loadOcc(),loadGeo()]);if(!LAND)buildGrid(D.meta);ensureScale();
+ const fn={0:viewHead,1:viewWork,2:viewEvents,3:viewSingle,4:viewClusters,5:viewCompare,6:viewSeason,7:viewAnalog,9:viewMethod,10:viewData}[S.view];
+ if(fn)await fn();else viewWork()}
+
+function hoverPanelHTML(info,F){if(!info||info.li<0)return `<div class="small">Hover a land cell for its values; click to open the place card.</div>`;const li=info.li;const z=HZ[S.h];
+ const rows=GCMS.map((g,i)=>`<tr><td>${GCM_NAME[g]}</td><td>${cv(F.hist[i][li])}</td><td>${cv(F.fut[i][li])}</td><td>${cv(F.perG[i][li])}</td></tr>`).join("");const a=F.agree[li];
+ return `<div class="readout"><b>${info.lat.toFixed(2)}°N ${info.lon>=0?info.lon.toFixed(2)+"°E":(-info.lon).toFixed(2)+"°W"}</b> · 0.5° cell (~55 km)<br><span class="big" style="font-size:22px">${cv(F.field[li])}</span> <span class="small">${unitLabel()}, ${modelLabel()}</span>
+ <table><tr><th></th><th>1981–2010</th><th>${S.scen==="hist"?"–":HOR[S.hor]}</th><th>${S.cmp==="abs"?"value":S.cmp==="diff"?"change":S.cmp==="ratio"?"ratio":"emerg."}</th></tr>${rows}</table>
+ <div class="small" style="margin-top:4px">Agreement on the sign of change: ${a===255?"undefined (no change in the median model)":a+" of 5"}${a!==255&&a<S.agreeN?" · stippled":""}</div></div>`}
+
+async function viewHead(){const F=field(S.h,"ens.mean",wkey(),S.cmp,S.metric);const z=HZ[S.h];const sc=makeScale(S.h,S.scale.breaks,S.scale.on,scaleKind(),S.scale.mode,S.scale.clipHigh);
+ const Hm=GCMS.map((g,i)=>landMean(F.hist[i])),Fm=GCMS.map((g,i)=>landMean(F.fut[i]));const hm=Hm.reduce((a,b)=>a+b)/5,fm=Fm.reduce((a,b)=>a+b)/5;const inc=Fm.filter((x,i)=>x>Hm[i]).length;
+ let emerg=0,emerg3=0,emergAll=0,land=0;for(let c=0;c<LAND.n;c++){land++;const h0=GCMS.every((g,i)=>F.hist[i][c]===0);if(!h0)continue;const k=GCMS.filter((g,i)=>F.fut[i][c]>0).length;if(k>0)emerg++;if(k>=3)emerg3++;if(k===5)emergAll++}
+ const win=S.scen==="hist"?"1981–2010":`${HOR[S.hor]} under ${SCEN_PLAIN[S.scen]} (${SCEN[S.scen]})`;
+ V.innerHTML=`<div class="grid2 wide"><div><div class="mapcard"><div class="title"><span>${z.label} · ${S.scen==="hist"?"1981–2010":SCEN[S.scen]+" "+HOR[S.hor]}${cmpLabel()}</span><span class="small">ensemble mean of 5 GCMs · stipple: fewer than ${S.agreeN} of 5 agree</span></div><canvas id="map"></canvas><div id="legend"></div></div>
+ <div class="caveat">This counts days inside a hazard footprint. It says nothing about damage, exposure or people. Footprints are the equal-area disks used in the analysis; a 0.5° cell is about 55 km across.</div></div>
+ <div><div class="card"><div class="big">${cv(fm)} <small>${unitLabel()} averaged over European land cells, ${S.scen==="hist"?"1981–2010":HOR[S.hor]+" · "+SCEN[S.scen]} (was ${cv(hm)} in 1981–2010) · <span class="pill ${inc>=4?"ok":"warn"}">${inc} of 5 models increase</span></small></div>
+ <div class="big" style="margin-top:12px">${hm>0?"×"+(fm/hm).toFixed(1):"new"} <small>land-mean ${S.metric==="count"?"event count":"event-days"} relative to 1981–2010 (page-derived from the shipped grids; the manuscript's published change factors are read from the results tables in the full build)</small></div>
+ <div class="big" style="margin-top:12px">${(emerg/land*100).toFixed(0)}% <small>of European land cells had no ${z.plain} event in any model in 1981–2010 and gain one in at least one model by ${S.scen==="hist"?"–":HOR[S.hor]} · ${(emerg3/land*100).toFixed(1)}% in at least three models · ${(emergAll/land*100).toFixed(1)}% in all five</small></div>
+ <div class="caption" id="cap"></div></div>
+ <div class="card" style="margin-top:12px"><h3>Show me</h3><div class="story"><button data-s="1"><b>The heat-drought engine</b>Heat-drought under very high emissions, late century: multiplies, lengthens, fills the continent.</button><button data-s="2"><b>Floods are a north-west story</b>Flood days rise in Britain, Ireland and Scandinavia; the south barely moves.</button><button data-s="3"><b>Windstorms fall, except the far north</b>Fewer days under compound windstorms almost everywhere.</button></div></div>
+ <div class="card" style="margin-top:12px"><h3>Find a place</h3><div class="row" style="display:flex;gap:6px;margin-top:6px"><input type="text" id="placeIn" placeholder="lat, lon  e.g. 44.5, 11.3" style="flex:1;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--chip)"><button class="btn" id="placeGo">Open place card</button></div><div class="small" style="margin-top:4px">Click any cell on the map for the same card. City search is a parked extension.</div></div></div></div>`;
+ const map=new GridMap(document.getElementById("map"),{onHover:i=>{},onClick:i=>{if(i.li>=0)openPlace({lat:i.lat,lon:i.lon})}});map.draw(F.field,sc,{agree:F.agree,agreeN:S.agreeN,stipple:S.stipple});
+ document.getElementById("legend").innerHTML=legendHTML(sc,F.field);bindLegend(document.getElementById("legend"),render);
+ const medA=(()=>{const a=Array.from(F.agree).filter(x=>x!==255).sort((x,y)=>x-y);return a.length?a[Math.floor(a.length/2)]:0})();
+ document.getElementById("cap").innerHTML=`<b>Caption.</b> By ${win}, European land spends on average ${cv(fm)} ${unitLabel()} inside a compound ${z.plain} event, against ${cv(hm)} in 1981–2010; ${inc} of 5 models show an increase. In the typical cell, ${agreeClause(medA)} on the direction of change. ${S.cmp==="diff"?"The map shows the change in days per year; teal means fewer days, grey means no change.":S.cmp==="abs"?"The map shows days per year in the selected window.":S.cmp==="ratio"?"The map shows the ratio to 1981–2010; cells with no historical events cannot show a ratio.":"The map shows cells that had no events in 1981–2010 and gain them, coloured by future days per year."}${S.scale.custom?" (custom colour scale)":""}`;
+ V.querySelectorAll(".story button").forEach(b=>b.onclick=()=>{const s=b.dataset.s;if(s==="1"){S.h="heat_drought_fire";S.scen="ssp585";S.hor="late"}if(s==="2"){S.h="flood";S.scen="ssp370";S.hor="late"}if(s==="3"){S.h="windstorm";S.scen="ssp585";S.hor="late"}S.cmp="diff";S.metric="days";resetScale();render()});
+ document.getElementById("placeGo").onclick=()=>{const m=document.getElementById("placeIn").value.match(/(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)/);if(!m){alert("Type latitude, longitude");return}openPlace({lat:+m[1],lon:+m[2]})}}
+
+async function viewWork(){const F=field(S.h,S.model,wkey(),S.cmp,S.metric);const z=HZ[S.h];const sc=makeScale(S.h,S.scale.breaks,S.scale.on,scaleKind(),S.scale.mode,S.scale.clipHigh);
+ V.innerHTML=`<div class="grid2 wide"><div><div class="mapcard"><div class="title"><span>${z.label} · ${modelLabel()}</span><span class="small">${S.scen==="hist"?"1981–2010":SCEN[S.scen]+" "+HOR[S.hor]}${cmpLabel()}</span></div><canvas id="map"></canvas><div id="legend"></div></div>
+ <div class="state" id="state"></div><div id="ed"></div><div class="caveat">This counts days inside a hazard footprint. It says nothing about damage, exposure or people.</div></div>
+ <div><div class="card" id="hover">${hoverPanelHTML(null,F)}</div><div class="card" style="margin-top:12px"><h3>Layers</h3><div class="small">Coastline and borders: Natural Earth 110m. AR6 region boxes, graticule and filtered-event disks are build items.</div></div>
+ <div class="card" style="margin-top:12px"><h3>Copy</h3><div class="row" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button class="btn" id="copyCap">Copy numbers + caption</button></div><div class="small" id="copyMsg" style="margin-top:4px"></div></div></div></div>`;
+ const map=new GridMap(document.getElementById("map"),{onHover:i=>{document.getElementById("hover").innerHTML=hoverPanelHTML(i,F);map.draw(F.field,sc,{agree:F.agree,agreeN:S.agreeN,stipple:S.stipple&&S.cmp!=="abs"});if(i&&i.li>=0)map.highlight(i)},onClick:i=>{if(i.li>=0)openPlace({lat:i.lat,lon:i.lon})}});
+ map.draw(F.field,sc,{agree:F.agree,agreeN:S.agreeN,stipple:S.stipple&&S.cmp!=="abs"});
+ document.getElementById("legend").innerHTML=legendHTML(sc,F.field);bindLegend(document.getElementById("legend"),render);
+ document.getElementById("state").textContent=stateSentence(F);document.getElementById("ed").innerHTML=editorHTML();bindEditor(document.getElementById("ed"),F.field,render);
+ document.getElementById("copyCap").onclick=async()=>{const t=stateSentence(F)+"\n"+location.href;try{await navigator.clipboard.writeText(t);document.getElementById("copyMsg").textContent="Copied."}catch(e){document.getElementById("copyMsg").textContent="Clipboard blocked in this sandbox; select the state sentence above and copy it."}}}
+
+async function viewEvents(){const cat=await loadCat(S.h);const z=HZ[S.h];const gcms=GCMS.filter(g=>S.f.gcms[g]);const wk=wkey();const tot=catTotals(cat,gcms,wk);const R=rasterise(cat,gcms,wk,filterFn());const RH=rasterise(cat,gcms,"hist",filterFn());
+ const fld=S.f.as==="days"?R.days:R.cnt;const vals=Float32Array.from(fld);const savedMetric=S.metric,savedCmp=S.cmp;S.metric=S.f.as==="days"?"days":"count";S.cmp="abs";ensureScale();const sc=makeScale(S.h,S.scale.breaks,S.scale.on,"seq",S.scale.mode,S.scale.clipHigh);
+ // timeline by year & month histogram
+ const yrs={},mon=new Array(12).fill(0);let sel=[];const wi=WINDOWS.indexOf(wk),ff=filterFn();for(const g of gcms){const c=cat[g];for(let i=0;i<c.w.length;i++){if(c.w[i]!==wi||!ff(c,i))continue;yrs[c.y[i]]=(yrs[c.y[i]]||0)+1;mon[Math.min(11,Math.floor((c.doy[i]-1)/30.44))]++;sel.push([g,i])}}
+ sel.sort((a,b)=>cat[b[0]].km2[b[1]]-cat[a[0]].km2[a[1]]);const top=sel.slice(0,15);
+ const y0=wk==="hist"?1981:(S.hor==="mid"?2031:2071);const yl=Array.from({length:30},(_,i)=>y0+i);const ymax=Math.max(1,...yl.map(y=>yrs[y]||0)),mmax=Math.max(1,...mon);
+ const durs=sel.map(([g,i])=>cat[g].dur[i]).sort((a,b)=>a-b),rads=sel.map(([g,i])=>Math.sqrt(cat[g].km2[i]/Math.PI)).sort((a,b)=>a-b);const med=a=>a.length?a[Math.floor(a.length/2)]:NaN;
+ const cdH=landMean(RH.days),cdF=landMean(R.days);
+ V.innerHTML=`<div class="grid2"><div><div class="card"><h3>Filters · ${z.label} · ${S.scen==="hist"?"1981–2010":SCEN[S.scen]+" "+HOR[S.hor]}</h3><div class="filters" style="margin-top:8px">
+  <div class="f"><span>Duration (days)</span><div><input type="range" id="fDurMin" min="1" max="60" value="${S.f.durMin}"><input type="range" id="fDurMax" min="1" max="200" value="${S.f.durMax}"></div><span class="val">${S.f.durMin}–${S.f.durMax}</span></div>
+  <div class="f"><span>Equivalent radius (km)</span><div><input type="range" id="fRadMin" min="0" max="1000" step="10" value="${S.f.radMin}"><input type="range" id="fRadMax" min="0" max="2500" step="10" value="${S.f.radMax}"></div><span class="val">${S.f.radMin}–${S.f.radMax}</span></div>
+  <div class="f"><span>Conditioning hazards ≥</span><div><input type="range" id="fNc" min="1" max="10" value="${S.f.ncMin}"></div><span class="val">${S.f.ncMin}</span></div>
+  <div><span class="small">Month of start</span><div class="months" style="margin-top:3px">${["J","F","M","A","M","J","J","A","S","O","N","D"].map((m,i)=>`<button class="chip ${S.f.months[i]?"on":""}" data-m="${i}">${m}</button>`).join("")}<button class="chip" data-season="JJA">JJA</button><button class="chip" data-season="DJF">DJF</button><button class="chip" data-season="all">all</button></div></div>
+  ${z.flags.length?`<div><span class="small">Conditioning channels (require / ignore / exclude)</span><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:3px">${z.flags.map(([k,l])=>`<span class="small">${l} <span class="tri" data-k="${k}"><button data-t="1" class="${S.f.tri[k]===1?"on":""}">require</button><button data-t="0" class="${S.f.tri[k]===0?"on":""}">ignore</button><button data-t="-1" class="${S.f.tri[k]===-1?"on":""}">exclude</button></span></span>`).join("")}</div></div>`:`<div class="small">Conditioning flags for ${z.plain} (${z.cond.join(", ")}) are parsed from the catalogue's conditioning string in the full build.</div>`}
+  <div><span class="small">Models pooled in this view (distribution shape only; headlines always use paired per-model statistics)</span><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:3px">${GCMS.map(g=>`<label class="small"><input type="checkbox" data-g="${g}" ${S.f.gcms[g]?"checked":""}> ${GCM_NAME[g]}</label>`).join("")}</div></div>
+  <div><span class="small">Rasterise the retained events as</span> <select id="fAs"><option value="days" ${S.f.as==="days"?"selected":""}>days per year</option><option value="count" ${S.f.as==="count"?"selected":""}>events per year</option></select> <button class="btn" id="fReset">Reset filters</button></div></div>
+  <div class="ledger">Ledger: ${tot.t.toLocaleString()} events in the catalogue for this window → <b>${R.used.toLocaleString()}</b> retained (${tot.t?(R.used/tot.t*100).toFixed(1):0}%) · ${gcms.map(g=>`${g} ${R.per[g]}/${tot.per[g]}`).join(" | ")}</div>
+  <div class="ledger">Retained set: median duration ${med(durs)} d · median equivalent radius ${med(rads)?med(rads).toFixed(0):"–"} km · land-mean days/yr ${cdF.toFixed(1)} vs ${cdH.toFixed(1)} with the same filter on 1981–2010 (${cdH>0?"×"+(cdF/cdH).toFixed(2):"new"})</div></div>
+  <div class="card" style="margin-top:12px"><h3>Events per year in the window</h3><div class="bars">${yl.map(y=>`<div title="${y}: ${yrs[y]||0}"><b style="height:${(yrs[y]||0)/ymax*100}%;background:${z.col}"></b></div>`).join("")}</div><div class="axis"><span>${y0}</span><span>${y0+29}</span></div>
+  <h3 style="margin-top:10px">Month of start</h3><div class="bars" style="height:70px">${mon.map((m,i)=>`<div title="${m}"><b style="height:${m/mmax*100}%;background:${i>=5&&i<=7?z.col:"#b8b8b2"}"></b></div>`).join("")}</div><div class="axis"><span>Jan</span><span>Jun–Aug shaded</span><span>Dec</span></div></div></div>
+ <div><div class="mapcard"><div class="title"><span>Map rebuilt from the ${R.used.toLocaleString()} retained events</span><span class="small">ensemble mean over ${gcms.length} pooled model${gcms.length>1?"s":""}</span></div><canvas id="map"></canvas><div id="legend"></div></div>
+ <div class="small" style="margin-top:6px">The browser re-runs the paper's disk rasteriser on the filtered catalogue: every event becomes a disk of radius √(extent/π) and adds its duration to each land cell whose centre it covers. With no filters this reproduces the precomputed grid.</div>
+ <div class="card" style="margin-top:12px"><h3>Largest retained events</h3><div class="tablewrap"><table class="data"><tr><th>model</th><th>year</th><th>start doy</th><th>days</th><th>lat</th><th>lon</th><th>radius km</th><th>cond.</th><th>severity</th></tr>${top.map(([g,i])=>{const c=cat[g];return `<tr><td>${g}</td><td>${c.y[i]}</td><td>${c.doy[i]}</td><td>${c.dur[i]}</td><td>${c.lat[i].toFixed(2)}</td><td>${c.lon[i].toFixed(2)}</td><td>${Math.sqrt(c.km2[i]/Math.PI).toFixed(0)}</td><td>${c.ncond[i]}</td><td>${c.sev[i]}</td></tr>`}).join("")}</table></div><div class="small">Severity = exceedance of the primary variable summed over every cell-day (native units). Full build: sortable virtual table, event card, follow the primary cluster into the cluster layer.</div></div></div></div>`;
+ const map=new GridMap(document.getElementById("map"),{onClick:i=>{if(i.li>=0)openPlace({lat:i.lat,lon:i.lon})}});map.draw(vals,sc,{});document.getElementById("legend").innerHTML=legendHTML(sc,vals,{unit:S.f.as==="days"?"days per year":"events per year",ends:false});bindLegend(document.getElementById("legend"),render);
+ S.metric=savedMetric;S.cmp=savedCmp;
+ const deb=(fn)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),150)}};const rr=deb(render);
+ const rng=(id,k,cast=Number)=>{const el=V.querySelector(id);el.oninput=()=>{S.f[k]=cast(el.value);rr()}};rng("#fDurMin","durMin");rng("#fDurMax","durMax");rng("#fRadMin","radMin");rng("#fRadMax","radMax");rng("#fNc","ncMin");
+ V.querySelectorAll(".months .chip[data-m]").forEach(b=>b.onclick=()=>{S.f.months[+b.dataset.m]^=1;render()});V.querySelectorAll(".chip[data-season]").forEach(b=>b.onclick=()=>{const s=b.dataset.season;S.f.months=S.f.months.map((_,i)=>s==="all"?1:s==="JJA"?(i>=5&&i<=7?1:0):(i===11||i<=1?1:0));render()});
+ V.querySelectorAll(".tri").forEach(t=>t.querySelectorAll("button").forEach(b=>b.onclick=()=>{S.f.tri[t.dataset.k]=+b.dataset.t;render()}));
+ V.querySelectorAll("input[data-g]").forEach(cb=>cb.onchange=()=>{S.f.gcms[cb.dataset.g]=cb.checked?1:0;if(!GCMS.some(g=>S.f.gcms[g]))S.f.gcms[cb.dataset.g]=1;render()});
+ V.querySelector("#fAs").onchange=e=>{S.f.as=e.target.value;S.scale.breaks=null;render()};V.querySelector("#fReset").onclick=()=>{S.f={durMin:1,durMax:200,radMin:0,radMax:2500,months:[1,1,1,1,1,1,1,1,1,1,1,1],ncMin:1,tri:{hum:0,soil:0,pdef:0},gcms:{mpi:1,gfdl:1,ipsl:1,mri:1,ukesm:1},as:S.f.as};render()}}
+
+function fmtS(x){if(x==null||Number.isNaN(x))return "–";const a=Math.abs(x);return a>=100?x.toFixed(0):a>=10?x.toFixed(1):a>=1?x.toFixed(2):x.toPrecision(2)}
+async function viewSingle(){const sh=await loadSH();const v=S.svar,vd=VARS[v],wk=wkey();const fam=vd.fam;const n=7700;
+ let vals=new Float32Array(n),unit="",kind="seq";const days=sh.days[`${v}|${wk}`],hd=sh.days[`${v}|hist`];
+ if(S.smetric==="days"){for(let i=0;i<n;i++)vals[i]=days[i];unit="extreme days per year"}else if(S.smetric==="ddays"){for(let i=0;i<n;i++)vals[i]=days[i]-hd[i];unit="change in extreme days per year vs 1981–2010";kind="div"}else if(S.smetric==="exceed"){const e=sh.exceed[`${v}|${wk}`];for(let i=0;i<n;i++)vals[i]=e[i]==null||days[i]===0?NaN:Math.abs(e[i]);unit="mean exceedance on extreme days ("+vd.unit+", native)"}else if(S.smetric==="thr"){const t=sh.threshold[v];for(let i=0;i<n;i++)vals[i]=t[i]==null?NaN:t[i];unit="threshold ("+vd.unit+", native)"}else{const j=sh.jja_share[`${v}|${wk}`];for(let i=0;i<n;i++)vals[i]=j[i]<0?NaN:j[i];unit="% of extreme days in June–August"}
+ const savedH=S.h;S.h=fam;if(!S.scale.breaks||S.scale.custom!==true||S._sKey!==v+S.smetric+wk){S.scale.breaks=kind==="div"?symBreaks(vals):autoBreaks(vals);S.scale.on=S.scale.breaks.slice(1).map(()=>true);S.scale.custom=false;S._sKey=v+S.smetric+wk}
+ const sc=makeScale(fam,S.scale.breaks,S.scale.on,kind,S.scale.mode,S.scale.clipHigh);
+ const lm=(a)=>{let s=0,k=0;for(let i=0;i<n;i++){const li=LAND.gridIdx[i];if(li<0)continue;const x=a[i];if(x==null||Number.isNaN(x))continue;s+=x;k++}return k?s/k:NaN};
+ V.innerHTML=`<div class="grid2 wide"><div><div class="mapcard"><div class="title"><span>${vd.name} · ${S.scen==="hist"?"1981–2010":SCEN[S.scen]+" "+HOR[S.hor]}</span><span class="small">MPI-ESM1-2-HR only in this mockup · exact per-cell geometry from the daily masks · sea cells shown</span></div><canvas id="map"></canvas><div id="legend"></div></div><div class="state" id="state"></div><div id="ed"></div></div>
+ <div><div class="card"><div class="grp"><span class="lab">Variable</span><select id="sVar">${Object.keys(VARS).map(k=>`<option value="${k}" ${k===v?"selected":""}>${VARS[k].name} (${k})</option>`).join("")}</select></div>
+ <div class="grp" style="margin-top:6px"><span class="lab">Metric</span><select id="sMet">${[["days","extreme days per year"],["ddays","change in extreme days vs 1981–2010"],["exceed","mean exceedance on extreme days"],["thr","threshold value (frozen, 1981–2010)"],["jja","share of extreme days in June–August"]].map(([k,l])=>`<option value="${k}" ${S.smetric===k?"selected":""}>${l}</option>`).join("")}</select></div>
+ <div class="def" style="margin-top:10px"><b>What counts as extreme.</b> A ${vd.name.toLowerCase()} day is extreme where the value is ${vd.type==="high"?"above":"below"} the local ${Math.round(vd.pct*100)}th percentile of 1981–2010 daily values${vd.roll?" (30-day rolling sum)":""}${vd.floorOn?` <b>and</b> ${vd.type==="high"?"at least":"at most"} ${vd.floorTxt}`:""}. Thresholds are computed per cell from each model's own 1981–2010 climate and frozen for the future.${vd.floorOn?" Where the local percentile is below the floor, the floor binds: this cell is measured against an absolute bar.":""}${!vd.floorOn&&vd.floor!=null?" The configured fixed value ("+vd.floor+" "+vd.unit+") is not applied as a floor for this variable.":""}</div>
+ <div class="def" style="margin-top:8px"><b>Clustering (DBSCAN).</b> eps ${vd.eps}° in space, ${vd.tim} days in time, min_samples ${vd.ms}, max gap ${vd.gap} days; calibrated on MPI-ESM1-2-HR and applied unchanged to all five models.</div>
+ <div class="def" style="margin-top:8px"><b>Feeds</b> <span class="hzlab ${fam}">${HZ[fam].label}</span> as ${HZ[fam].primary===v?"the primary variable":"a conditioning channel"}.</div>
+ <div class="readout" style="margin-top:10px">Land mean of the mapped field: <b>${fmtS(lm(vals))}</b> ${unit}${S.smetric==="days"?` · 1981–2010: ${fmtS(lm(hd))}`:""}</div>
+ <div class="card" style="margin-top:12px" id="hover"><div class="small">Hover a cell.</div></div></div></div>`;
+ const map=new GridMap(document.getElementById("map"),{full:true,onHover:i=>{const gi=i.gi;const t=sh.threshold[v][gi];document.getElementById("hover").innerHTML=`<div class="readout"><b>${i.lat.toFixed(2)}°N ${i.lon.toFixed(2)}°E</b>${i.li<0?" (sea)":""}<br>mapped value: <b>${fmtS(vals[gi])}</b><br>extreme days/yr: 1981–2010 ${fmtS(hd[gi])} → ${fmtS(days[gi])}<br>threshold here: ${t==null?"–":vd.disp(t)}${vd.floorOn&&t!=null?(Math.abs(t-vd.floor)<1e-9*Math.max(1,Math.abs(vd.floor))?" · <b>floor binds</b>":" · local percentile binds"):""}<br>JJA share: ${sh.jja_share[`${v}|${wk}`][gi]<0?"–":sh.jja_share[`${v}|${wk}`][gi]+"%"}</div>`;map.draw(vals,sc,{});map.highlight(i)},onClick:i=>{openPlace({lat:i.lat,lon:i.lon})}});
+ map.draw(vals,sc,{});document.getElementById("legend").innerHTML=legendHTML(sc,vals,{unit,ends:kind==="div"});bindLegend(document.getElementById("legend"),render);
+ document.getElementById("ed").innerHTML=editorHTML();bindEditor(document.getElementById("ed"),vals,()=>{S.scale.custom=true;render()});
+ document.getElementById("state").textContent=`${vd.name} (${v}), MPI-ESM1-2-HR, ${S.scen==="hist"?"1981–2010":SCEN[S.scen]+" "+HOR[S.hor]}: ${unit}. Rule: ${vd.type==="high"?">":"<"} local p${Math.round(vd.pct*100)}${vd.floorOn?" and floor "+vd.floorTxt:""}. Exact per-cell geometry from the daily masks; no disk approximation.${S.scale.custom?" (custom colour scale)":""}`;
+ V.querySelector("#sVar").onchange=e=>{S.svar=e.target.value;S.scale.breaks=null;render()};V.querySelector("#sMet").onchange=e=>{S.smetric=e.target.value;S.scale.breaks=null;render()};
+ S.h=savedH;document.documentElement.style.setProperty("--accent",HZ[fam].col)}
+function symBreaks(vals){const v=Array.from(vals).filter(x=>x!=null&&Number.isFinite(x)&&x!==0).map(Math.abs).sort((a,b)=>a-b);if(!v.length)return [-1,0,1];const m=v[Math.floor(0.95*(v.length-1))]||1;const nice=x=>{const p=Math.pow(10,Math.floor(Math.log10(x)));return Math.ceil(x/p)*p};const M=nice(m);return [-M,-M/2,0,M/4,M/2,M]}
+
+async function viewClusters(){const wk=wkey();V.innerHTML=`<div class="concept"><b>Concept panel.</b> The cluster layer is specified but not wired in this mockup. It needs one offline pass over the ten single-variable cluster catalogues per model (about 1.7 million clusters): pre-rasterised cluster-days per cell for every variable, packed rows for the seven compound-relevant variables so size, duration and season filters re-rasterise the map live, and summary statistics for the two humidity variables that are too large to ship.</div>
+ <div class="grid2"><div class="card"><h3>What exists on disk (real counts)</h3><div class="tablewrap"><table class="data"><tr><th>variable</th><th>feeds</th>${GCMS.map(g=>`<th>${g}</th>`).join("")}<th>ship as</th></tr>${Object.keys(CLUSTER_ROWS).map(v=>`<tr><td>${v}</td><td class="hzlab ${VARS[v].fam}">${HZ[VARS[v].fam].label.replace("Compound ","")}</td>${CLUSTER_ROWS[v].map(n=>`<td>${n.toLocaleString()}</td>`).join("")}<td>${v.startsWith("hurs")?"grids + summary":v==="pr"?"grids + largest 10k rows/model":"grids + all rows"}</td></tr>`).join("")}</table></div><div class="small">Columns per cluster: start, end, duration, grid points, centroid, extent, exceedance sum/mean/max (normalised too).</div></div>
+ <div class="card"><h3>Planned controls</h3><div class="filters"><div class="f"><span>Variable</span><select disabled><option>tasmax</option></select><span></span></div><div class="f"><span>Duration</span><input type="range" disabled><span class="val">1–90 d</span></div><div class="f"><span>Grid points</span><input type="range" disabled><span class="val">≥ min_samples</span></div><div class="f"><span>Equivalent radius</span><input type="range" disabled><span class="val">km</span></div><div class="f"><span>Month of start</span><span class="small">12 chips + seasons</span><span></span></div><div class="f"><span>DBSCAN preset</span><select disabled><option>nominal (MPI only, two windows)</option></select><span></span></div></div>
+ <h3 style="margin-top:12px">Panels</h3><ul class="small"><li>Map of cluster-days per year (or clusters per window) for the chosen variable, model, scenario, horizon; change vs 1981–2010; agreement stipple.</li><li>Duration × extent hexbin with a draggable filter box, marginal histograms, centroid-latitude density 1981–2010 vs future, month-of-start histogram, all linked to the map.</li><li>Overlay of the compound events that used this variable, so attrition from single-variable cluster to compound event is visible.</li><li>DBSCAN parameter card from the per-model config, with the MPI-calibration caveat.</li><li>Filter ledger per model, e.g. “tasmax, mpi, SSP5-8.5 2071–2100: 636 clusters → 212 retained”.</li></ul></div></div>`}
+
+async function viewCompare(){const wk=wkey();const z=HZ[S.h];const F=field(S.h,S.model,wk,S.cmp,S.metric);const sc=makeScale(S.h,S.scale.breaks,S.scale.on,scaleKind(),S.scale.mode,S.scale.clipHigh);
+ const panels=[...GCMS.map(g=>({t:GCM_NAME[g],vals:F.perG[GCMS.indexOf(g)]})),{t:"Ensemble median",vals:field(S.h,"ens.median",wk,S.cmp,S.metric).field}];
+ V.innerHTML=`<div class="small" style="margin-bottom:8px">Six panels on one locked scale · ${z.label} · ${S.scen==="hist"?"1981–2010":SCEN[S.scen]+" "+HOR[S.hor]}${cmpLabel()} · ${unitLabel()}. Hover any panel to read all six values.</div><div class="multi">${panels.map((p,i)=>`<div class="mapcard"><div class="title"><span>${p.t}</span></div><canvas id="m${i}"></canvas></div>`).join("")}<div class="mapcard"><div class="title"><span>Agreement count (models with the median's sign of change)</span></div><canvas id="mA"></canvas></div><div class="card" id="cmpHover" style="grid-column:span 2"><div class="small">Hover a cell.</div></div></div><div class="mapcard" style="margin-top:10px" id="legend"></div>`;
+ const maps=panels.map((p,i)=>{const m=new GridMap(document.getElementById("m"+i),{onHover:hov,onClick:c=>{if(c.li>=0)openPlace({lat:c.lat,lon:c.lon})}});m.draw(p.vals,sc,{});return m});
+ const agVals=Float32Array.from(F.agree,a=>a===255?NaN:a);const agSc=makeScale(S.h,[0,1,2,3,4,5,6],[1,1,1,1,1,1],"seq","step",false);agSc.cols=["#f0f0ec","#d9d9d4","#b9b9b3","#8f8f8a","#5f5f5a","#22272e"];agSc.colour=v=>Number.isNaN(v)?null:agSc.cols[Math.min(5,Math.max(0,Math.round(v)))];const mA=new GridMap(document.getElementById("mA"),{onHover:hov});mA.draw(agVals,agSc,{});
+ function hov(i){if(!i||i.li<0)return;document.getElementById("cmpHover").innerHTML=`<div class="readout"><b>${i.lat.toFixed(2)}°N ${i.lon.toFixed(2)}°E</b> → ${panels.map(p=>`${p.t.split(" ")[0]} <b>${cv(p.vals[i.li])}</b>`).join(" · ")} · agreement ${F.agree[i.li]===255?"undefined":F.agree[i.li]+" of 5"}</div>`}
+ document.getElementById("legend").innerHTML=legendHTML(sc,panels[5].vals);bindLegend(document.getElementById("legend"),render)}
+
+async function viewSeason(){const cat=await loadCat(S.h);const z=HZ[S.h];const wk=wkey();const wi=WINDOWS.indexOf(wk);
+ const monthly=(w)=>{const m=new Array(12).fill(0);for(const g of GCMS){const c=cat[g];for(let i=0;i<c.w.length;i++)if(c.w[i]===w)m[Math.min(11,Math.floor((c.doy[i]-1)/30.44))]+=c.dur[i]}return m};
+ const mh=monthly(0),mf=monthly(wi);const tot=a=>a.reduce((x,y)=>x+y,0);const outJJA=a=>tot(a)?(1-(a[5]+a[6]+a[7])/tot(a))*100:NaN;const mx=Math.max(1,...mh,...mf);
+ const cent=(w,g)=>{const c=cat[g];let s=0,k=0;for(let i=0;i<c.w.length;i++)if(c.w[i]===w){s+=c.lat[i]*c.km2[i];k+=c.km2[i]}return k?s/k:NaN};
+ const shifts=GCMS.map(g=>cent(wi,g)-cent(0,g));const sm=shifts.reduce((a,b)=>a+b)/5;const north=shifts.filter(x=>x>0).length;
+ const lb=Array.from({length:14},(_,i)=>35+i*2.5);const prof=(w)=>{const p=new Array(14).fill(0);for(const g of GCMS){const c=cat[g];for(let i=0;i<c.w.length;i++)if(c.w[i]===w){const b=Math.min(13,Math.max(0,Math.floor((c.lat[i]-35)/2.5)));p[b]+=c.dur[i]*c.km2[i]}}return p};const ph=prof(0),pf=prof(wi);const pmx=Math.max(1,...ph,...pf);
+ V.innerHTML=`<div class="grid2"><div class="card"><h3>When in the year do ${z.plain} events start?</h3><div class="small">Event-days by month of start, all five models pooled · grey-blue = 1981–2010, colour = ${wk==="hist"?"1981–2010":SCEN[S.scen]+" "+HOR[S.hor]}</div>
+ <div class="bars" style="margin-top:8px">${mh.map((h,i)=>`<div title="${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][i]}: ${h} → ${mf[i]}"><b style="height:${h/mx*100}%;background:#C6DBEF"></b><i style="height:${mf[i]/mx*100}%;background:${z.col}"></i></div>`).join("")}</div><div class="axis"><span>Jan</span><span>Dec</span></div>
+ <div class="readout" style="margin-top:8px">Share of event-days starting outside June–August: <b>${outJJA(mh).toFixed(0)}%</b> in 1981–2010 → <b>${outJJA(mf).toFixed(0)}%</b>. <span class="small">Full build: season length (p10–p90 of start day), onset shift, unique-day weighting, per-model lines, from the seasonality tables.</span></div></div>
+ <div class="card"><h3>How far north does activity move?</h3><div class="small">Extent-weighted event-days by latitude band (2.5°), pooled · centroid latitude per model, extent-weighted</div>
+ <div class="bars" style="margin-top:8px">${lb.map((b,i)=>`<div title="${b}–${b+2.5}°N"><b style="height:${ph[i]/pmx*100}%;background:#C6DBEF"></b><i style="height:${pf[i]/pmx*100}%;background:${z.col}"></i></div>`).join("")}</div><div class="axis"><span>35°N</span><span>70°N</span></div>
+ <div class="readout" style="margin-top:8px">Centroid shift: <b>${sm>=0?"+":""}${sm.toFixed(2)}°</b> (≈ ${Math.abs(sm*111).toFixed(0)} km) · ${north} of 5 models shift north · per model: ${GCMS.map((g,i)=>`${g} ${shifts[i]>=0?"+":""}${shifts[i].toFixed(2)}°`).join(", ")}</div>
+ <div class="small" style="margin-top:6px">The manuscript's shift statistic uses bootstrap intervals and a Mann–Whitney test from the shift tables; the number above is the raw extent-weighted difference of centroid latitudes computed from the shipped catalogue.</div></div></div>`}
+
+async function viewAnalog(){V.innerHTML=`<div class="concept"><b>Concept panel.</b> Analogue cards read the calibrated fingerprints and published change factors from the results tables (disaster_fingerprints_recalibrated.csv, disaster_analogue_change_factors.csv). No numbers are typed into the mockup.</div>
+ <div class="multi">${[["Greece 2021","Compound heat-drought","heat_drought_fire","Duration and extent minima calibrated to reproduce the historical rate of Greece-class episodes; box over the eastern Mediterranean."],["Western Europe 2021","Compound flood","flood","Fingerprint calibrated on the July 2021 floods; box over Benelux, western Germany, eastern France."],["Vaia 2018","Compound windstorm","windstorm","Deep-low fingerprint over the Alps; the 2018 storm's wind cluster is not resolved at 0.5° (the 17.2 m/s floor binds), stated as a limitation."]].map(([n,h,k,d])=>`<div class="card"><h3>${n}</h3><div class="hzlab ${k}">${h}</div><p class="small">${d}</p><div class="kv"><b>Published factor</b><span>from results table · per scenario and horizon · five per-model ratios · zero-denominator models reported as emergent</span><b>Fingerprint editor</b><span>duration ≥ … days, extent ≥ … km², box; reset to published; edited views badged</span><b>Live recount</b><span>from the shipped event catalogue with the browser filter</span></div></div>`).join("")}</div>`}
+
+async function viewMethod(){const c=D.meta;V.innerHTML=`<div class="grid2"><div><div class="card"><h3>Pipeline</h3><ol class="small" style="padding-left:18px"><li><b>Ingest</b> seven daily variables (ISIMIP3b bias-adjusted; H08 runoff and soil moisture, 1850soc) for five GCMs, 0.5°, Europe 35–70°N 15°W–40°E, decade files 1981–2010 and 2031–2060 / 2071–2100 for SSP1-2.6, SSP3-7.0, SSP5-8.5.</li><li><b>Thresholds</b> per cell from 1981–2010 (local percentile with physical floors), frozen for the future → ten extreme types → daily binary masks and exceedance fields.</li><li><b>DBSCAN</b> space–time clustering per variable → single-variable cluster catalogues.</li><li><b>Compound matching</b>: primary cluster plus conditioning clusters overlapping in space (equal-area disks) within lag windows → three compound hazards.</li><li><b>Metrics</b>: counts, duration, extent, occupancy, cumulative severity, seasonality, northward shift, disaster analogues, ensemble agreement.</li></ol></div>
+ <div class="card" style="margin-top:12px"><h3>Extreme types (from the model config)</h3><div class="tablewrap"><table class="data"><tr><th>variable</th><th>rule</th><th>percentile</th><th>floor</th><th>floor applied</th><th>eps space</th><th>eps time</th><th>min_samples</th><th>max gap</th></tr>${Object.entries(VARS).map(([k,v])=>`<tr><td>${k}</td><td>${v.type==="high"?"above":"below"}</td><td>p${Math.round(v.pct*100)}</td><td>${v.floor==null?"–":v.floorTxt||v.floor+" "+v.unit}</td><td>${v.floorOn?"yes":"no"}</td><td>${v.eps}°</td><td>${v.tim} d</td><td>${v.ms}</td><td>${v.gap} d</td></tr>`).join("")}</table></div></div>
+ <div class="card" style="margin-top:12px"><h3>Compound rules</h3><div class="tablewrap"><table class="data"><tr><th>hazard</th><th>primary</th><th>conditioning (≥1)</th><th>lag</th></tr>${Object.entries(HZ).map(([k,z])=>`<tr><td class="hzlab ${k}">${z.label}</td><td>${z.primary}</td><td>${z.cond.join(", ")}</td><td>${z.lag} d</td></tr>`).join("")}</table></div></div></div>
+ <div><div class="card"><h3>Sensitivity (verified scope)</h3><p class="small">The DBSCAN sweep exists for MPI-ESM1-2-HR only, over 1981–2010 and SSP5-8.5 2071–2100 (windstorm: SSP3-7.0). Of the five settings, low-eps/high-min_samples produced no clusters for any hazard and low-eps/low-min_samples none for heat-drought and windstorm. The page will show these as “degenerate” and read every ratio from the S7 tables; it will never let a preset silently show nominal data.</p></div>
+ <div class="card" style="margin-top:12px"><h3>Sandbox checks (this page, now)</h3><div class="kv"><b>Sibling data files</b><span>${D.occ?"fetched ✓":"not loaded"}</span><b>URL hash on load</b><span>${hashReceived?"received ✓ (links reproduce a view)":"none received (open a copied link to test)"}</span><b>Clipboard</b><span>${navigator.clipboard?"API present (write tested by Copy)":"absent"}</span><b>Land cells</b><span>${LAND?LAND.n:"–"} of 7,700 grid cells</span><b>Catalogues resident</b><span>${Object.keys(D).filter(k=>k.startsWith("cat_")).map(k=>k.slice(4)).join(", ")||"none yet"}</span></div></div>
+ <div class="card" style="margin-top:12px"><h3>Limitations carried on every view</h3><ul class="small"><li>Compound and cluster footprints are equal-area disks (centroid + extent), not exact cell sets.</li><li>Days per year sum event durations with multiplicity where events overlap (2–5% above the union of intervals in the Balkans; no cell exceeds 365). The full build ships the union as the default.</li><li>Thresholds are model-relative and frozen on 1981–2010; extreme-day counts are comparable across models, threshold values are not model warmth.</li><li>min_samples calibrated on MPI-ESM1-2-HR and applied to all five GCMs; H08 socio-economic scenario 1850soc.</li><li>No daily series; monthly and 30-year aggregates only. No exposure, damage or population.</li></ul></div></div></div>`}
+
+/* ============ data explorer ============ */
+S.data={set:"events",q:"",sort:"dur",desc:true,page:0,cell:null,row:null};
+function eventsTouching(cat,lat,lon){const out=[];const kmlon=111*Math.cos(lat*Math.PI/180);for(const g of GCMS){const c=cat[g];if(!c)continue;for(let i=0;i<c.w.length;i++){const r=Math.sqrt(c.km2[i]/Math.PI);const dy=(lat-c.lat[i])*111,dx=(lon-c.lon[i])*kmlon;if(dx*dx+dy*dy<=r*r)out.push([g,i])}}return out}
+function parseQuery(q,cols){const cl=q.split("&").map(s=>s.trim()).filter(Boolean);const tests=[];for(const s of cl){const m=s.match(/^([a-zA-Z_0-9]+)\s*(>=|<=|==|!=|>|<|=)\s*(.+)$/);if(!m)return {err:`cannot read “${s}” (use column op value, e.g. dur>=10 & model==mpi)`};const ci=cols.indexOf(m[1]);if(ci<0)return {err:`unknown column “${m[1]}”`};const op=m[2]==="="?"==":m[2];const raw=m[3].trim();const num=Number(raw);const isNum=raw!==""&&!Number.isNaN(num);tests.push(r=>{const v=r[ci];const a=isNum?+v:String(v);const b=isNum?num:raw;switch(op){case ">=":return a>=b;case "<=":return a<=b;case ">":return a>b;case "<":return a<b;case "==":return a==b;case "!=":return a!=b}})}return {tests}}
+async function dataset(){const h=S.h;if(S.data.set==="events"){const cat=await loadCat(h);const cols=["model","window","year","doy","dur","lat","lon","km2","radius_km","sev","int","ncond",...HZ[h].flags.map(f=>f[0])];const rows=[];const touch=S.data.cell?new Set(eventsTouching(cat,S.data.cell.lat,S.data.cell.lon).map(x=>x.join("|"))):null;
+  for(const g of GCMS){const c=cat[g];for(let i=0;i<c.w.length;i++){if(touch&&!touch.has(g+"|"+i))continue;rows.push([g,WINDOWS[c.w[i]],c.y[i],c.doy[i],c.dur[i],c.lat[i],c.lon[i],c.km2[i],+Math.sqrt(c.km2[i]/Math.PI).toFixed(0),c.sev[i],c.int[i],c.ncond[i],...HZ[h].flags.map(f=>c[f[0]]?c[f[0]][i]:"")])}}
+  return {cols,rows,title:`Compound ${HZ[h].plain} events, all five models, all windows`,note:"One row per compound event exactly as catalogued (Phase 4): centroid, equal-area extent, duration, conditioning count and flags, cumulative severity (exceed_sum) and intensity (exceed_mean) in native units. Columns renamed for reading; nothing recomputed except radius_km = √(km2/π)."}}
+ if(S.data.set==="occ"){const cols=["lat","lon",...GCMS.flatMap(g=>WINDOWS.map(w=>`${g}_${w}`))];const rows=[];const pl={};for(const g of GCMS)for(const w of WINDOWS)pl[`${g}_${w}`]=plane(h,g,w,S.metric==="count"?"count":"days");
+  for(let c=0;c<LAND.n;c++)rows.push([LAND.lat[c],LAND.lon[c],...GCMS.flatMap(g=>WINDOWS.map(w=>pl[`${g}_${w}`][c]))]);return {cols,rows,title:`Compound ${HZ[h].plain}: ${S.metric==="count"?"events per year":"days per year under an event"} per land cell, per model and window`,note:"Level 1 grid behind every compound map: disk-rasterised occupancy per 0.5° land cell (sum of covering event durations ÷ 30 years). 35 columns = 5 models × 7 windows."}}
+ const sh=await loadSH();const v=S.svar;const cols=["lat","lon","land","threshold",...WINDOWS.map(w=>"days_"+w),...WINDOWS.map(w=>"exceed_"+w),...WINDOWS.map(w=>"jja_"+w)];const rows=[];for(let gi=0;gi<7700;gi++){const row=Math.floor(gi/110),col=gi%110;rows.push([35.25+row*0.5,-14.75+col*0.5,LAND.gridIdx[gi]>=0?1:0,sh.threshold[v][gi],...WINDOWS.map(w=>sh.days[`${v}|${w}`][gi]),...WINDOWS.map(w=>sh.exceed[`${v}|${w}`][gi]),...WINDOWS.map(w=>sh.jja_share[`${v}|${w}`][gi])])}
+ return {cols,rows,title:`${VARS[v].name} (${v}), MPI-ESM1-2-HR: per-cell summary of the daily extreme masks`,note:"Exact per-cell quantities from the daily masks: frozen threshold (native units), extreme days per year, mean exceedance on extreme days, share of extreme days in June–August, for each of the seven windows. Full grid including sea."}}
+async function viewData(){const ds=await dataset();const cols=ds.cols;let rows=ds.rows;let err="";if(S.data.q){const p=parseQuery(S.data.q,cols);if(p.err)err=p.err;else rows=rows.filter(r=>p.tests.every(t=>t(r)))}
+ const si=cols.indexOf(S.data.sort);if(si>=0){const d=S.data.desc?-1:1;rows=rows.slice().sort((a,b)=>{const x=a[si],y=b[si];if(x==null)return 1;if(y==null)return -1;return (x>y?1:x<y?-1:0)*d})}
+ const PAGE=40;const pages=Math.max(1,Math.ceil(rows.length/PAGE));S.data.page=Math.min(S.data.page,pages-1);const view=rows.slice(S.data.page*PAGE,(S.data.page+1)*PAGE);
+ const fmt=x=>x==null?"–":typeof x==="number"?(Number.isInteger(x)?x:(Math.abs(x)<0.01&&x!==0?x.toExponential(3):+x.toPrecision(5))):x;
+ V.innerHTML=`<div class="levels">
+ <div class="live"><b>1 · Grids</b>Per-cell values behind every map: hover, place card, and the “occupancy per cell” and “single-hazard per cell” tables here.</div>
+ <div class="live"><b>2 · Events</b>Every compound event as catalogued, all columns. Filter, sort, click a row, or arrive from a cell (“events touching this cell”).</div>
+ <div class="build"><b>3 · Clusters</b>The single-variable DBSCAN clusters each event was built from (≈1.7 M rows). Build item: packed rows and the event → primary cluster link.</div>
+ <div class="build"><b>4 · Yearly counts</b>Per-cell extreme days per year, every year 1981–2100, per model and variable (≈5 MB per variable). Build item.</div>
+ <div class="build"><b>5 · Daily values</b>The daily masks and raw ISIMIP series for a cell. 34 GB stay on a server; a small data service answers per-cell requests once the page is hosted outside Claude.</div></div>
+ <div class="card"><div class="qbar"><select id="dSet"><option value="events" ${S.data.set==="events"?"selected":""}>Compound events (${HZ[S.h].plain})</option><option value="occ" ${S.data.set==="occ"?"selected":""}>Compound occupancy per cell (${HZ[S.h].plain})</option><option value="single" ${S.data.set==="single"?"selected":""}>Single-hazard per cell (MPI): ${S.svar}</option></select>
+ ${S.data.set==="single"?`<select id="dVar">${Object.keys(VARS).map(k=>`<option value="${k}" ${k===S.svar?"selected":""}>${k}</option>`).join("")}</select>`:""}
+ <input type="text" id="dQ" value="${S.data.q.replace(/"/g,"&quot;")}" placeholder="filter, e.g.  dur>=10 & lat>50 & model==mpi   (columns: ${cols.slice(0,8).join(", ")}…)"><button class="btn" id="dGo">Apply</button><button class="btn" id="dClear">Clear</button><button class="btn" id="dCsv">Copy filtered rows as CSV</button></div>
+ ${S.data.cell?`<div class="notice">Showing only events whose footprint covers the cell ${S.data.cell.lat.toFixed(2)}°N ${S.data.cell.lon.toFixed(2)}°E · <button class="btn" id="dCell">show all events</button></div>`:""}
+ <div class="small"><b>${ds.title}</b> · ${rows.length.toLocaleString()} of ${ds.rows.length.toLocaleString()} rows${err?` · <span class="notice">${err}</span>`:""} · page ${S.data.page+1} of ${pages} <button class="btn" id="dPrev">‹</button><button class="btn" id="dNext">›</button> · <span id="dMsg"></span></div>
+ <div class="tablewrap"><table class="data"><tr>${cols.map(c=>`<th class="sortable ${S.data.sort===c?"sorted":""}" data-c="${c}">${c}${S.data.sort===c?(S.data.desc?" ▾":" ▴"):""}</th>`).join("")}</tr>${view.map((r,i)=>`<tr class="row" data-i="${i}">${r.map(x=>`<td>${fmt(x)}</td>`).join("")}</tr>`).join("")}</table></div>
+ <div class="small" style="margin-top:6px">${ds.note}</div></div>
+ <div class="card" style="margin-top:12px" id="dDetail">${S.data.row?rowDetail(cols,S.data.row):'<div class="small">Click a row for its full record and the next level down.</div>'}</div>`;
+ const q=s=>V.querySelector(s);q("#dSet").onchange=e=>{S.data.set=e.target.value;S.data.q="";S.data.page=0;S.data.row=null;S.data.sort=S.data.set==="events"?"dur":"lat";render()};if(q("#dVar"))q("#dVar").onchange=e=>{S.svar=e.target.value;render()};
+ q("#dGo").onclick=()=>{S.data.q=q("#dQ").value;S.data.page=0;render()};q("#dQ").onkeydown=e=>{if(e.key==="Enter"){S.data.q=q("#dQ").value;S.data.page=0;render()}};q("#dClear").onclick=()=>{S.data.q="";S.data.page=0;render()};
+ q("#dPrev").onclick=()=>{S.data.page=Math.max(0,S.data.page-1);render()};q("#dNext").onclick=()=>{S.data.page=Math.min(pages-1,S.data.page+1);render()};if(q("#dCell"))q("#dCell").onclick=()=>{S.data.cell=null;render()};
+ V.querySelectorAll("th.sortable").forEach(th=>th.onclick=()=>{const c=th.dataset.c;if(S.data.sort===c)S.data.desc=!S.data.desc;else{S.data.sort=c;S.data.desc=true}render()});
+ V.querySelectorAll("tr.row").forEach(tr=>tr.onclick=()=>{S.data.row=view[+tr.dataset.i];document.getElementById("dDetail").innerHTML=rowDetail(cols,S.data.row);document.getElementById("dDetail").scrollIntoView({block:"nearest"})});
+ q("#dCsv").onclick=async()=>{const cap=20000;const txt=[cols.join(","),...rows.slice(0,cap).map(r=>r.map(x=>x==null?"":x).join(","))].join("\n");try{await navigator.clipboard.writeText(txt);q("#dMsg").textContent=`copied ${Math.min(rows.length,cap).toLocaleString()} rows${rows.length>cap?" (capped)":""}`}catch(e){q("#dMsg").textContent="clipboard blocked here; downloads work once hosted outside Claude"}}}
+function rowDetail(cols,r){const o={};cols.forEach((c,i)=>o[c]=r[i]);const isEv=S.data.set==="events";return `<h3>Record</h3><div class="detail" style="margin-top:6px">${cols.map((c,i)=>`<span><b>${c}</b>${r[i]==null?"–":r[i]}</span>`).join("")}</div>
+ ${isEv?`<div class="small" style="margin-top:8px"><b>Next level down.</b> This event was matched from a primary <code>${HZ[S.h].primary}</code> cluster and ${o.ncond} conditioning cluster${o.ncond==1?"":"s"} overlapping its disk within ${HZ[S.h].lag} days. The cluster rows (level 3) and the daily cells behind them (level 5) are not in this mockup. <button class="btn" id="dToMap">Show this event's window on the map</button></div>`:`<div class="small" style="margin-top:8px">Cell ${o.lat}°N ${o.lon}°E. <button class="btn" id="dToPlace">Open place card</button></div>`}`}
+document.addEventListener("click",e=>{if(e.target.id==="dToMap"){const r=S.data.row,cols=[];const w=r[1];S.scen=w==="hist"?"hist":w.split("_")[0];S.hor=w.endsWith("late")?"late":"mid";S.view=1;S.cmp="abs";resetScale();render()}if(e.target.id==="dToPlace"){const r=S.data.row;openPlace({lat:r[0],lon:r[1]})}});
+
+/* ============ place card ============ */
+async function openPlace(p){S.sel=p;const row=Math.round((p.lat-35.25)/0.5),col=Math.round((p.lon+14.75)/0.5);if(row<0||row>69||col<0||col>109){alert("Outside the domain (35–70°N, 15°W–40°E)");return}const gi=row*110+col,li=LAND.gridIdx[gi];const lat=35.25+row*0.5,lon=-14.75+col*0.5;const dr=document.getElementById("drawer");dr.classList.add("open");
+ dr.innerHTML=`<h2><span>${lat.toFixed(2)}°N ${lon>=0?lon.toFixed(2)+"°E":(-lon).toFixed(2)+"°W"}</span><button class="btn" id="plClose">close</button></h2><div class="small">0.5° cell (~55 km). ${li<0?"Sea cell: compound occupancy is defined on land cells only.":""}</div><div id="plBody">loading…</div>`;
+ dr.querySelector("#plClose").onclick=()=>dr.classList.remove("open");
+ const sh=await loadSH();let html="";
+ if(li>=0){const wk=wkey();const table=Object.keys(HZ).map(h=>{const cells=WINDOWS.map(w=>{const v=GCMS.map(g=>plane(h,g,w,"days")[li]);return v.reduce((a,b)=>a+b,0)/5});const per=GCMS.map(g=>plane(h,g,wk,"days")[li]);const hs=GCMS.map(g=>plane(h,g,"hist","days")[li]);const inc=per.filter((x,i)=>x>hs[i]).length;return `<tr><td class="hzlab ${h}">${HZ[h].label.replace("Compound ","")}</td>${cells.map(x=>`<td>${x.toFixed(0)}</td>`).join("")}<td><span class="dots">${per.map((x,i)=>`<i style="background:${x>hs[i]?HZ[h].col:x<hs[i]?"#3b8ea5":"#ccc"}" title="${GCMS[i]} ${x.toFixed(0)}"></i>`).join("")}</span> ${Math.min(...per).toFixed(0)}–${Math.max(...per).toFixed(0)}</td></tr>`}).join("");
+  const hd=GCMS.map(g=>plane(S.h,g,"hist","days")[li]),fd=GCMS.map(g=>plane(S.h,g,wk,"days")[li]);const hm=hd.reduce((a,b)=>a+b)/5,fm=fd.reduce((a,b)=>a+b)/5;const inc=fd.filter((x,i)=>x>hd[i]).length;
+  html+=`<section><div class="lab">Days a year inside a compound event (disk-rasterised, ensemble mean)</div><div class="tablewrap"><table class="data"><tr><th></th><th>1981–2010</th><th>1-2.6 mid</th><th>1-2.6 late</th><th>3-7.0 mid</th><th>3-7.0 late</th><th>5-8.5 mid</th><th>5-8.5 late</th><th>per model, ${wk==="hist"?"1981–2010":SCEN[S.scen]+" "+HOR[S.hor]}</th></tr>${table}</table></div></section>
+  <section><div class="lab">In plain words</div><div>Today this cell spends about <b>${hm.toFixed(0)}</b> days a year inside a compound ${HZ[S.h].plain} event. ${wk==="hist"?"":`By ${HOR[S.hor]} under ${SCEN_PLAIN[S.scen]} (${SCEN[S.scen]}) that becomes about <b>${fm.toFixed(0)}</b> days${fm>=30?` (close to ${(fm/30.44).toFixed(1)} months)`:""}; ${agreeClause(inc>=3?inc:5-inc)} (${inc} of 5 increase; models range ${Math.min(...fd).toFixed(0)}–${Math.max(...fd).toFixed(0)}).`} Footprint days are not damage, exposure or people.</div></section>`}
+ const thr=Object.keys(VARS).map(v=>{const t=sh.threshold[v][gi];const vd=VARS[v];const binds=vd.floorOn&&t!=null&&Math.abs(t-vd.floor)<1e-9*Math.max(1,Math.abs(vd.floor));return `<tr><td>${v}</td><td>${t==null?"–":vd.disp(t)}</td><td>${vd.floorOn?(binds?"floor binds":"local p"+Math.round(vd.pct*100)+" binds"):"local p"+Math.round(vd.pct*100)}</td><td>${sh.days[`${v}|hist`][gi]??"–"}</td><td>${sh.days[`${v}|${wkey()}`][gi]??"–"}</td></tr>`}).join("");
+ html+=`<section><div class="lab">What counts as extreme here (exact per-cell, MPI-ESM1-2-HR in this mockup)</div><div class="tablewrap"><table class="data"><tr><th>variable</th><th>threshold</th><th>which bound</th><th>days/yr 1981–2010</th><th>days/yr ${wkey()==="hist"?"–":HOR[S.hor]+" "+SCEN[S.scen]}</th></tr>${thr}</table></div><div class="small">Each model has its own local thresholds; extreme-day counts are comparable across models, threshold values are not model warmth. The full build shows all five models.</div></section>
+ <section><div class="lab">Down to the data</div>${li>=0?`<button class="btn" id="plEvents">Events touching this cell (${HZ[S.h].plain}) →</button> `:""}<button class="btn" id="plSingle">Single-hazard row for this cell →</button><div class="small" style="margin-top:4px">Full build adds: first year in record, 12-month risk ribbon per hazard, the five largest events covering this cell, pin up to four cells, copy as text, copy link.</div></section>`;
+ dr.querySelector("#plBody").innerHTML=html;
+ const pe=dr.querySelector("#plEvents");if(pe)pe.onclick=()=>{S.data.set="events";S.data.cell={lat,lon};S.data.q="";S.data.page=0;S.data.row=null;S.view=10;dr.classList.remove("open");render()};
+ dr.querySelector("#plSingle").onclick=()=>{S.data.set="single";S.data.cell=null;S.data.q=`lat==${lat} & lon==${lon}`;S.data.page=0;S.data.row=null;S.view=10;dr.classList.remove("open");render()}}
+
+/* ============ init ============ */
+document.getElementById("modeBrief").onchange=e=>{S.brief=e.target.checked;render()};
+document.getElementById("copyLink").onclick=async()=>{saveHash();try{await navigator.clipboard.writeText(location.href);setStatus("link copied ✓","ok")}catch(e){prompt("Copy this link:",location.href)}};
+loadHash();document.getElementById("modeBrief").checked=S.brief;
+render().catch(e=>{setStatus("error: "+e.message,"warn");console.error(e)});
+</script>
