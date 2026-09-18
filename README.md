@@ -2,7 +2,9 @@
 
 Interactive explorer for *Compound climate hazard changes across Europe* (Sano, Ferrario, Torresan, Critto; manuscript in review). Static page plus data files; no server, no build step.
 
-**Status: mockup v0.3, private.** The manuscript is under review; do not enable GitHub Pages or any public host until the lead author releases it.
+**Status: mockup v0.3, public preview.** The manuscript is under review. Please do not cite or redistribute numbers from this page until the paper is published; cite the paper once it is out.
+
+Live page: https://marcellosano.github.io/mhh-explorer/
 
 ## Run locally
 
@@ -19,6 +21,10 @@ Opening `index.html` directly from disk will not work: the page fetches its data
 - `spec.html` — the build specification
 - `data/` — derived data read by the page (≈25 MB): compound occupancy grids per model × window × hazard, packed compound catalogues per hazard, single-hazard per-cell summaries (MPI-ESM1-2-HR), grid metadata, Natural Earth 110m coast and borders
 - `build/` — the two scripts that produced `data/` from the pipeline outputs (`Outputs/Ensemble/raw_v2`) and the Phase-2 daily masks (Vault)
+
+## Citation
+
+Sano M., Ferrario D. M., Torresan S., Critto A. *Compound climate hazard changes across Europe*, manuscript in review (Nature Climate Change). Explorer: https://github.com/marcellosano/mhh-explorer. Data are derived products of ISIMIP3b (bias-adjusted GCM output) and the H08 hydrological model; the underlying ISIMIP data carry their own licence and citation requirements.
 
 ## Provenance
 
